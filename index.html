@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jídelník">
 <title>Jídelník</title>
 <style>
 :root{
@@ -1084,6 +1089,11 @@ document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",(
 // ═══════════════════════════════════════════
 applyPlan();
 render();
+
+// Registrace service workeru (offline + instalace jako PWA); ignoruje se při file://
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 </script>
 </body>
 </html>
