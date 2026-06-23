@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a">
+<title>Jídelník</title>
+<style>
+:root{
+  --bg:#0f1115;--card:#1a1d24;--card2:#222732;--card3:#2a2f3c;
+  --txt:#e8eaed;--mut:#9aa3af;--acc:#22c55e;--acc2:#16a34a;
+  --line:#2c313c;--star:#fbbf24;--danger:#ef4444;
+  --veg:#22c55e;--kure:#f59e0b;--vepr:#fb7185;--hovez:#a78bfa;--ryba:#38bdf8;--sweet:#e879c9;
+  --kcal:#fb923c;--prot:#34d399;--carb:#60a5fa;--fat:#f472b6;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px}
+body{padding-bottom:80px;max-width:680px;margin:0 auto}
+h1,h2,h3{margin:0}
+.head{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 70%,transparent);padding:14px 16px 6px}
+.head h1{font-size:20px;display:flex;align-items:center;gap:8px}
+.head .sub{color:var(--mut);font-size:13px;margin-top:2px}
+.wrap{padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.daycard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:10px 0;transition:border-color .2s}
+.daycard.today{border-color:rgba(34,197,94,.5);background:linear-gradient(135deg,rgba(22,163,74,.07),var(--card))}
+.summary{background:linear-gradient(135deg,#15321f,#1a1d24);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.row{display:flex;align-items:center;gap:10px}
+.spread{justify-content:space-between}
+.tag{font-size:11px;padding:3px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.t-veg{background:rgba(34,197,94,.15);color:var(--veg)}
+.t-kure{background:rgba(245,158,11,.15);color:var(--kure)}
+.t-vepr{background:rgba(251,113,133,.15);color:var(--vepr)}
+.t-hovez{background:rgba(167,139,250,.15);color:var(--hovez)}
+.t-ryba{background:rgba(56,189,248,.15);color:var(--ryba)}
+.t-sweet{background:rgba(232,121,201,.15);color:var(--sweet)}
+.meal{padding:10px 0;border-bottom:1px solid var(--line)}
+.meal:last-child{border-bottom:none}
+.meal .lbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.meal .name{font-weight:600;font-size:15px}
+.meal.cooked .name{color:var(--mut);text-decoration:line-through}
+.cook-btn{background:none;border:1.5px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;color:var(--mut);cursor:pointer;white-space:nowrap;transition:all .15s}
+.cook-btn.done{border-color:var(--acc);color:var(--acc);background:rgba(34,197,94,.1)}
+.day{font-weight:700;font-size:15px;margin-bottom:2px}
+.btn{background:var(--acc2);color:#fff;border:none;border-radius:12px;padding:11px 14px;font-size:15px;font-weight:600;cursor:pointer;transition:transform .1s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--card2);color:var(--txt)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
+.btn.block{width:100%}
+.btn.danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.swap{background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer}
+.stars{display:inline-flex;gap:3px;font-size:22px;line-height:1;cursor:pointer;user-select:none}
+.stars .s{color:#3a404c;transition:color .1s}
+.stars .s.on{color:var(--star)}
+.stars.sm{font-size:16px}
+.muted{color:var(--mut);font-size:13px}
+.macros{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.mb{font-size:11px;font-weight:700;padding:3px 7px;border-radius:7px;display:inline-flex;gap:4px;align-items:center}
+.m-kcal{background:rgba(251,146,60,.15);color:var(--kcal)}
+.m-prot{background:rgba(52,211,153,.15);color:var(--prot)}
+.m-carb{background:rgba(96,165,250,.15);color:var(--carb)}
+.m-fat{background:rgba(244,114,182,.15);color:var(--fat)}
+.bars{display:flex;height:8px;border-radius:5px;overflow:hidden;margin-top:8px;background:#2a2f3a}
+.bars i{display:block;height:100%}
+.bignum{font-size:26px;font-weight:800}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin-top:6px}
+.grid4 .v{font-size:17px;font-weight:700}
+.grid4 .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.chip.on{background:var(--acc2);color:#fff;border-color:var(--acc2)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(20,23,29,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:30;max-width:680px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;background:none;border:none;color:var(--mut);padding:9px 0 8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+.nav button .ic{font-size:21px}
+.nav button.on{color:var(--acc)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.modal.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 16px 32px;animation:up .22s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+.pick{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;transition:background .1s}
+.pick:active,.pick:hover{background:var(--card2)}
+.handle{width:40px;height:4px;background:#3a404c;border-radius:2px;margin:0 auto 14px}
+ul.ing{list-style:none;padding:0;margin:8px 0}
+ul.ing li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+ol.steps{margin:8px 0;padding-left:20px}
+ol.steps li{padding:4px 0;line-height:1.5}
+.check{display:flex;align-items:flex-start;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.check input{width:20px;height:20px;accent-color:var(--acc);margin-top:2px;flex-shrink:0}
+.check.done label{opacity:.45}
+.check.done .cname{text-decoration:line-through}
+.shop-cat{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding:14px 2px 4px;display:flex;align-items:center;gap:6px}
+.shop-cat .cnt{background:var(--card2);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700}
+.sectlabel{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 4px;font-weight:700}
+.empty{color:var(--mut);text-align:center;padding:30px 10px}
+.pill-q{font-size:10px;background:rgba(56,189,248,.15);color:var(--ryba);padding:2px 6px;border-radius:6px;font-weight:700}
+.pill-cl{font-size:10px;background:rgba(96,165,250,.18);color:var(--carb);padding:2px 6px;border-radius:6px;font-weight:700}
+.note{background:var(--card2);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin:8px 0}
+a{color:var(--acc)}
+label.fld{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut);font-weight:600}
+input.in,select.in,textarea.in{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+input.in:focus,select.in:focus,textarea.in:focus{border-color:var(--acc2)}
+textarea.in{min-height:90px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.four{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.badge-custom{font-size:10px;background:rgba(34,197,94,.15);color:var(--acc);padding:2px 7px;border-radius:6px;font-weight:700}
+.scaler{display:inline-flex;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.scaler button{background:none;border:none;color:var(--txt);width:36px;height:34px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.scaler button:active{background:var(--card3)}
+.scaler span{padding:0 10px;font-weight:700;font-size:14px;min-width:44px;text-align:center}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(8px);background:#22293a;border:1px solid #3a4a5a;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:600;z-index:100;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.add-manual{display:flex;gap:8px;margin:10px 0}
+.add-manual input{flex:1}
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>🍽️ Jídelník</h1>
+  <div class="sub" id="subtitle"></div>
+</div>
+<div id="view" class="wrap"></div>
+<div class="nav">
+  <button data-tab="tyden" class="on"><span class="ic">📅</span>Týden</button>
+  <button data-tab="recepty"><span class="ic">📖</span>Recepty</button>
+  <button data-tab="nakup"><span class="ic">🛒</span>Nákup</button>
+  <button data-tab="spiz"><span class="ic">🏠</span>Spíž</button>
+</div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const CAT={veg:{l:"Vegetariánské",c:"veg",e:"🥦"},kure:{l:"Kuřecí",c:"kure",e:"🐔"},vepr:{l:"Vepřové",c:"vepr",e:"🐖"},hovez:{l:"Hovězí",c:"hovez",e:"🐄"},ryba:{l:"Ryba",c:"ryba",e:"🐟"},sweet:{l:"Sladké",c:"sweet",e:"🍮"}};
+const SPICES=new Set(["Sůl","Pepř","Olej","Cukr","Kari koření","Mletá paprika","Kmín","Chilli vločky","Skořice","Garam masala"]);
+const ALLDAYS=["Po","Út","St","Čt","Pá","So","Ne"];
+const DEFAULT_RATINGS={butter:5,gnocchi_carb:4};
+
+const SHOP_CATS=[
+  {id:"maso",  l:"🥩 Maso & ryby",         keys:["kuřec","hovez","vepřov","panenka","kotleta","žebr","mleté","špalík","šunk","slanin","párk","tuňák","losos"]},
+  {id:"mlecne",l:"🥛 Mléčné & vejce",       keys:["smetana","jogurt","tvaroh","sýr","niva","hermelín","balkán","tavený","parmazán","máslo","mléko","vejce","žloutek","zakysaná","čedar","eidam"]},
+  {id:"zelen", l:"🥦 Zelenina & ovoce",      keys:["rajče","rajčat","paprik","cibul","mrkev","česnek","žampion","houb","okurk","salát","špenát","batát","brambor","jahod","citron","cuketa","kukuřic","fazolk","zelí","petrže","celer","bazalk","šalvěj","zázvor","jarní","kopr","pažitk","brusink"]},
+  {id:"suche", l:"🥫 Těstoviny & konzervy",  keys:["těstoviny","špaget","tagliatelle","nudle","lasagne","rýže","gnocchi","mouka","strouhank","cizrna","fazole","drcená","kokosové","vývar","protlak","sójov","burákov","mirin","saké","víno","tatarsk","majonéz","oříšek"]},
+  {id:"pecivo",l:"🥖 Pečivo & placky",       keys:["chléb","chleba","toustov","bulka","bageta","pita","naan","tortilla","knedlík","listové těsto","polotovar","pizza","pečivo"]},
+  {id:"ostatni",l:"🛒 Ostatní",             keys:[]}
+];
+
+// ═══════════════════════════════════════════
+// RECIPES
+// ═══════════════════════════════════════════
+const R=[
+ {id:"aglio",name:"Špagety aglio e olio",cat:"veg",time:20,porce:2,meals:["vecere"],quick:true,kcal:600,p:15,c:72,f:28,
+  ing:[["Špagety","200 g"],["Česnek","4 stroužky"],["Olivový olej","6 lžic"],["Chilli vločky","½ lžičky"],["Petrželka","hrst"],["Parmazán","na posyp"],["Sůl",""],["Pepř",""]],
+  steps:["Uvař špagety al dente, schovej vodu.","Na oleji osmahni česnek a chilli (nesmí zhnědnout).","Přihoď špagety, zalij vodou, promíchej.","Dochuť, zasyp petrželkou a parmazánem."]},
+ {id:"rizoto",name:"Houbové rizoto",cat:"veg",time:35,porce:2,meals:["obed","vecere"],quick:false,kcal:540,p:15,c:72,f:18,
+  ing:[["Rýže arborio","180 g"],["Žampiony","250 g"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Zeleninový vývar","700 ml"],["Bílé víno","100 ml"],["Parmazán","50 g"],["Máslo","30 g"],["Olivový olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, česnek a žampiony.","Přidej rýži, zalij vínem, nech odpařit.","Po naběračkách přilévej vývar a míchej ~18 min.","Zašlehej máslo a parmazán."]},
+ {id:"saksuka",name:"Šakšuka",cat:"veg",time:30,porce:2,meals:["obed","vecere"],quick:true,kcal:400,p:20,c:26,f:22,
+  ing:[["Vejce","4 ks"],["Drcená rajčata","400 g"],["Paprika","1 ks"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Mletá paprika","1 lžička"],["Kmín","½ lžičky"],["Olivový olej",""],["Pečivo","k podávání"],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, papriku a česnek.","Přidej koření a rajčata, 10 min provař.","Udělej důlky, zaklepni vejce, vař do ztuhnutí bílku.","Podávej s pečivem."]},
+ {id:"cizrna",name:"Zeleninové kari s cizrnou",cat:"veg",time:30,porce:2,meals:["obed","vecere"],quick:true,kcal:680,p:22,c:82,f:30,
+  ing:[["Cizrna","400 g"],["Kokosové mléko","400 ml"],["Drcená rajčata","200 g"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Mrkev","1 ks"],["Kari koření","1,5 lžíce"],["Zázvor","kousek"],["Rýže","160 g"],["Olej",""],["Sůl",""]],
+  steps:["Osmahni cibuli, česnek a zázvor, přidej kari.","Vhoď mrkev, rajčata a kokos, 10 min vař.","Přidej cizrnu, prohřej.","Podávej s rýží."]},
+ {id:"omeleta",name:"Vaječná omeleta se zeleninou",cat:"veg",time:15,porce:2,meals:["vecere"],quick:true,kcal:380,p:24,c:18,f:24,
+  ing:[["Vejce","5 ks"],["Paprika","½ ks"],["Rajčata","1 ks"],["Cibule","½ ks"],["Sýr strouhaný","hrst"],["Máslo",""],["Pečivo","k podávání"],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, papriku a rajče.","Zalij rozšlehanými vejci, osol.","Posyp sýrem, přehni a dopeč."]},
+ {id:"testoviny_rajca",name:"Těstoviny s rajčatovou omáčkou",cat:"veg",time:20,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:520,p:15,c:90,f:8,
+  ing:[["Těstoviny","220 g"],["Drcená rajčata","400 g"],["Česnek","2 stroužky"],["Cibule","1 ks"],["Bazalka","pár lístků"],["Olivový olej","1 lžíce"],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli a česnek.","Přilij rajčata, 15 min povař, dochuť.","Smíchej s těstovinami, zasyp bazalkou."]},
+ {id:"gnocchi",name:"Gnocchi s máslem a parmazánem",cat:"veg",time:15,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:560,p:16,c:80,f:18,
+  ing:[["Gnocchi","500 g"],["Máslo","40 g"],["Parmazán","60 g"],["Šalvěj","pár lístků"],["Sůl",""],["Pepř",""]],
+  steps:["Uvař gnocchi (vyplavou).","Na másle osmahni šalvěj.","Vmíchej gnocchi a parmazán."]},
+
+ {id:"kari_kure",name:"Indické kuřecí kari",cat:"kure",time:35,porce:2,meals:["obed","vecere"],quick:false,kcal:650,p:42,c:70,f:26,
+  ing:[["Kuřecí prsa","350 g"],["Kokosové mléko","400 ml"],["Drcená rajčata","200 g"],["Cibule","1 ks"],["Česnek","3 stroužky"],["Zázvor","kousek"],["Kari koření","1,5 lžíce"],["Rýže","160 g"],["Olej",""],["Sůl",""]],
+  steps:["Orestuj kuře, vyndej.","Osmahni cibuli, česnek, zázvor a kari.","Přilij rajčata a kokos, vrať kuře, 15 min vař.","Podávej s rýží."]},
+ {id:"butter",name:"Butter chicken s naan",cat:"kure",time:45,porce:2,meals:["obed","vecere"],quick:false,cl:false,kcal:760,p:46,c:48,f:40,
+  ing:[["Kuřecí prsa","400 g"],["Bílý jogurt","150 g"],["Rajský protlak","2 lžíce"],["Drcená rajčata","200 g"],["Smetana na vaření","150 ml"],["Máslo","40 g"],["Cibule","1 ks"],["Česnek","3 stroužky"],["Zázvor","kousek"],["Garam masala","1,5 lžíce"],["Kari koření","1 lžíce"],["Naan placky","2 ks"],["Rýže","120 g"]],
+  steps:["Kuře nakrájej, marinuj v jogurtu, půlce koření, česneku a zázvoru (ideálně 30 min).","Na másle osmahni cibuli, zbytek česneku, zázvoru a koření.","Přidej protlak a drcená rajčata, krátce povař, rozmixuj do hladka.","Vmíchej smetanu, přidej orestované kuře, 10 min dus.","Podávej s naan plackami a rýží."]},
+ {id:"teriyaki",name:"Teriyaki kuře s rýží",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:540,p:44,c:74,f:9,
+  ing:[["Kuřecí prsa","350 g"],["Sójová omáčka","4 lžíce"],["Med","2 lžíce"],["Mirin","1 lžíce"],["Saké","1 lžíce"],["Česnek","2 stroužky"],["Zázvor","kousek"],["Rýže","160 g"],["Sezam","na posyp"],["Jarní cibulka","na ozdobu"],["Olej",""]],
+  steps:["Orestuj kuře.","Zalij směsí sójovky, medu, mirinu, saké, česneku a zázvoru, zredukuj na glazuru.","Podávej na rýži, posyp sezamem a cibulkou."]},
+ {id:"teriyaki_nudle",name:"Teriyaki kuře s rýžovými nudlemi",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:560,p:42,c:78,f:10,
+  ing:[["Kuřecí prsa","350 g"],["Rýžové nudle","200 g"],["Sójová omáčka","4 lžíce"],["Med","2 lžíce"],["Mirin","1 lžíce"],["Saké","1 lžíce"],["Česnek","2 stroužky"],["Zázvor","kousek"],["Paprika","1 ks"],["Sezam","na posyp"],["Jarní cibulka","na ozdobu"],["Olej",""]],
+  steps:["Rýžové nudle namoč/uvař podle návodu a sceď.","Nakrájené kuřecí prsa orestuj na oleji, přidej papriku.","Zalij směsí sójovky, medu, mirinu, saké, česneku a zázvoru, nech zredukovat na lesklou glazuru.","Vmíchej nudle, prohřej, posyp sezamem a jarní cibulkou."]},
+ {id:"quesadilla",name:"Kuřecí quesadilla",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,kcal:620,p:42,c:55,f:26,
+  ing:[["Kuřecí prsa","300 g"],["Tortilla placky","4 ks"],["Sýr strouhaný","150 g"],["Paprika","1 ks"],["Cibule","1 ks"],["Kukuřice","100 g"],["Mletá paprika",""],["Kmín",""],["Olej",""],["Sůl",""]],
+  steps:["Orestuj kuře s cibulí, paprikou a kořením.","Na pánev tortilla, sýr, náplň, kukuřice, přiklop druhou.","Opeč z obou stran, nakrájej."]},
+ {id:"stirfry",name:"Kuřecí nudle stir-fry",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,kcal:520,p:38,c:68,f:12,
+  ing:[["Kuřecí prsa","300 g"],["Čínské nudle","200 g"],["Paprika","1 ks"],["Mrkev","1 ks"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Sójová omáčka","3 lžíce"],["Zázvor","kousek"],["Olej",""]],
+  steps:["Uvař nudle.","Na woku orestuj kuře, vyndej.","Restuj cibuli, mrkev, papriku, česnek, zázvor.","Vrať kuře, přidej nudle a sójovku."]},
+ {id:"testovinovy_salat",name:"Těstovinový salát s kuřecím masem",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,kcal:620,p:38,c:60,f:26,
+  ing:[["Kuřecí prsa","300 g"],["Těstoviny","200 g"],["Okurka","½ ks"],["Paprika","1 ks"],["Kukuřice","100 g"],["Majonéza","3 lžíce"],["Sůl",""],["Pepř",""]],
+  steps:["Uvař těstoviny, sceď a nech vychladnout.","Kuřecí prsa orestuj nebo uvař a nakrájej na kostky.","Nakrájej okurku a papriku, přidej scezenou kukuřici.","Smíchej těstoviny, kuře a zeleninu s majonézou, osol, opepři a nech vychladit."]},
+
+ {id:"gulas",name:"Vepřový guláš",cat:"vepr",time:90,porce:2,meals:["obed"],quick:false,kcal:600,p:36,c:40,f:30,
+  ing:[["Vepřová plec","400 g"],["Cibule","3 ks"],["Česnek","2 stroužky"],["Mletá paprika","2 lžíce"],["Kmín","½ lžičky"],["Hladká mouka","1 lžíce"],["Pečivo","k podávání"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Do sklovata orestuj cibuli.","Přidej maso, opeč, vmíchej papriku mimo plamen.","Podlij vodou, koření, dus ~75 min.","Zahusti moukou. Podávej s pečivem."]},
+ {id:"segedin",name:"Segedínský guláš s houskovým knedlíkem",cat:"vepr",time:70,porce:2,meals:["obed"],quick:false,kcal:680,p:38,c:52,f:34,
+  ing:[["Vepřová plec","400 g"],["Kysané zelí","400 g"],["Cibule","2 ks"],["Mletá paprika","1,5 lžíce"],["Smetana na vaření","150 ml"],["Hladká mouka","1 lžíce"],["Kmín","½ lžičky"],["Houskový knedlík","k podávání"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Na oleji osmahni cibuli, přidej nakrájenou vepřovou plec a opeč.","Vmíchej mletou papriku mimo plamen, přidej kmín, podlij vodou a dus ~45 min doměkka.","Přidej kysané zelí (s trochou nálevu) a dus dalších ~15 min.","Zahusti jíškou z mouky, zjemni smetanou, dochuť. Podávej s houskovým knedlíkem."]},
+ {id:"carbonara",name:"Špagety carbonara",cat:"vepr",time:20,porce:2,meals:["vecere"],quick:true,kcal:700,p:30,c:72,f:32,
+  ing:[["Špagety","200 g"],["Slanina","120 g"],["Vejce","3 žloutky + 1"],["Parmazán","60 g"],["Česnek","1 stroužek"],["Pepř",""],["Sůl",""]],
+  steps:["Uvař špagety al dente, schovej vodu.","Vyškvař slaninu.","Smíchej vejce s parmazánem a pepřem.","Mimo plamen vmíchej vaječnou směs a vodu do krému."]},
+ {id:"gnocchi_carb",name:"Gnocchi carbonara",cat:"vepr",time:20,porce:2,meals:["vecere"],quick:true,cl:true,kcal:720,p:28,c:84,f:30,
+  ing:[["Gnocchi","500 g"],["Slanina","120 g"],["Vejce","3 žloutky + 1"],["Parmazán","60 g"],["Česnek","1 stroužek"],["Pepř",""],["Sůl",""]],
+  steps:["Uvař gnocchi, dokud nevyplavou na hladinu.","Vyškvař nakrájenou slaninu dokřupava.","Smíchej vejce/žloutky s nastrouhaným parmazánem a pepřem.","Horká gnocchi smíchej se slaninou, mimo plamen vmíchej vaječnou směs a trochu vody z vaření do krému (nevař, ať se vejce nesrazí)."]},
+ {id:"panenka",name:"Vepřová panenka na žampionech",cat:"vepr",time:35,porce:2,meals:["obed","vecere"],quick:false,kcal:600,p:44,c:30,f:32,
+  ing:[["Vepřová panenka","400 g"],["Žampiony","250 g"],["Smetana na vaření","200 ml"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Hořčice","1 lžíce"],["Brambory","k podávání"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Panenku na medailonky, opeč, vyndej.","Osmahni cibuli, česnek a žampiony.","Přidej smetanu a hořčici, povař.","Vrať maso. Podávej s bramborem."]},
+ {id:"panenka_parmazan",name:"Vepřová panenka s parmazánovou omáčkou",cat:"vepr",time:30,porce:2,meals:["obed","vecere"],quick:false,kcal:640,p:46,c:38,f:32,
+  ing:[["Vepřová panenka","400 g"],["Batáty","400 g"],["Parmazán","60 g"],["Smetana na vaření","200 ml"],["Česnek","2 stroužky"],["Petrželka","hrst"],["Sůl",""],["Pepř",""]],
+  steps:["Batáty oloupej, nakrájej na kostky, potři olejem a peč na 200 °C ~25 min (nebo uvař).","Panenku nakrájej na medailonky, osol, opepři a opeč z obou stran. Vyndej.","Na výpeku osmahni česnek, přilij smetanu, vmíchej parmazán a povař do zhoustnutí.","Vrať maso, prohřej, posyp petrželkou a podávej s batáty."]},
+ {id:"zebra",name:"Pečená vepřová žebírka",cat:"vepr",time:120,porce:2,meals:["vecere"],quick:false,kcal:720,p:42,c:18,f:50,
+  ing:[["Vepřová žebra","600 g"],["Kečup","4 lžíce"],["Med","2 lžíce"],["Sójová omáčka","2 lžíce"],["Hořčice","1 lžíce"],["Česnek","3 stroužky"],["Mletá paprika",""],["Sůl",""],["Pepř",""]],
+  steps:["Marináda z kečupu, medu, sójovky, hořčice a česneku.","Žebra potři, zabal, peč 160 °C ~90 min.","Rozbal, potři a dopeč 20–30 min."]},
+ {id:"tousty",name:"Tousty se šunkou a sýrem",cat:"vepr",time:10,porce:2,meals:["vecere"],quick:true,kcal:480,p:24,c:42,f:24,
+  ing:[["Toustový chléb","4–6 plátků"],["Šunka","4 plátky"],["Sýr plátky","4 plátky"],["Máslo","na potření"],["Kečup",""]],
+  steps:["Chleba potři máslem.","Naplň šunkou a sýrem.","Opeč do zlatova."]},
+ {id:"pita_zapecena",name:"Zapečené pity se šunkou a sýrem",cat:"vepr",time:20,porce:2,meals:["vecere"],quick:true,kcal:520,p:26,c:58,f:20,
+  ing:[["Pita chleby","4 ks"],["Šunka","100 g"],["Sýr strouhaný","120 g"],["Kukuřice","100 g"],["Paprika","1 ks"],["Rajčata","1 ks"],["Kečup","na potření"]],
+  steps:["Troubu předehřej na 200 °C.","Pity potři kečupem, poskládej šunku, nakrájenou papriku, rajčata a kukuřici.","Posyp sýrem.","Zapeč ~10–12 min, dokud se sýr nerozteče a okraje nezkřupnou."]},
+
+ {id:"burger",name:"Hovězí burger",cat:"hovez",time:30,porce:2,meals:["vecere"],quick:true,kcal:650,p:38,c:42,f:34,
+  ing:[["Mleté hovězí","350 g"],["Burgerová bulka","2 ks"],["Sýr čedar","2 plátky"],["Cibule","1 ks"],["Rajčata","1 ks"],["Listový salát","pár listů"],["Kečup",""],["Hořčice",""],["Sůl",""],["Pepř",""],["Olej",""]],
+  steps:["Vytvaruj 2 placky, osol před pečením.","Opeč 3–4 min z každé strany, na konec sýr.","Opeč bulky, poskládej."]},
+ {id:"bolognese",name:"Špagety bolognese",cat:"hovez",time:45,porce:2,meals:["obed","vecere"],quick:false,cl:true,kcal:620,p:34,c:72,f:20,
+  ing:[["Mleté hovězí","300 g"],["Špagety","200 g"],["Drcená rajčata","400 g"],["Cibule","1 ks"],["Mrkev","1 ks"],["Česnek","2 stroužky"],["Rajský protlak","1 lžíce"],["Parmazán","na posyp"],["Olivový olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, mrkev a česnek, přidej maso.","Vmíchej protlak, zalij rajčaty, dus 25 min.","Podávej na špagetách, posyp parmazánem."]},
+ {id:"stroganoff",name:"Hovězí Stroganoff",cat:"hovez",time:40,porce:2,meals:["obed","vecere"],quick:false,kcal:620,p:40,c:52,f:28,
+  ing:[["Hovězí zadní","350 g"],["Žampiony","200 g"],["Cibule","1 ks"],["Zakysaná smetana","200 ml"],["Hořčice","1 lžíce"],["Rajský protlak","1 lžíce"],["Rýže","k podávání"],["Hladká mouka",""],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Hovězí na nudličky, opeč, vyndej.","Osmahni cibuli a žampiony, přidej protlak a hořčici.","Vrať maso, zapraš moukou, podlij, povař.","Mimo plamen vmíchej smetanu. Podávej s rýží."]},
+ {id:"chili",name:"Chili con carne",cat:"hovez",time:45,porce:2,meals:["obed","vecere"],quick:false,kcal:640,p:40,c:72,f:18,
+  ing:[["Mleté hovězí","350 g"],["Červené fazole","400 g"],["Drcená rajčata","400 g"],["Kukuřice","150 g"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Paprika","1 ks"],["Mletá paprika",""],["Kmín",""],["Chilli vločky",""],["Rýže","k podávání"],["Olej",""],["Sůl",""]],
+  steps:["Osmahni cibuli, česnek a papriku, přidej maso.","Vsyp koření, přilij rajčata, dus 20 min.","Přidej fazole a kukuřici, prohřej.","Podávej s rýží."]},
+
+ {id:"tunak",name:"Špagety s tuňákem",cat:"ryba",time:20,porce:2,meals:["vecere"],quick:true,kcal:520,p:34,c:70,f:10,
+  ing:[["Špagety","200 g"],["Tuňák v konzervě","2 konzervy"],["Drcená rajčata","400 g"],["Česnek","2 stroužky"],["Cibule","1 ks"],["Olivový olej",""],["Chilli vločky",""],["Petrželka",""],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, česnek a chilli.","Přilij rajčata, vmíchej tuňák.","Smíchej se špagetami, posyp petrželkou."]},
+
+ {id:"naan",name:"Domácí naan",cat:"veg",time:25,porce:2,meals:[],quick:true,kcal:300,p:9,c:50,f:6,
+  ing:[["Hladká mouka","250 g"],["Bílý jogurt","100 g"],["Kvasnice","½ kostky"],["Máslo","20 g"],["Sůl",""],["Cukr","1 lžička"]],
+  steps:["Zpracuj těsto z mouky, jogurtu, kvasnic, špetky cukru a soli, nech kynout.","Rozděl, rozválej placky.","Opeč na rozpálené suché pánvi z obou stran, potři máslem."]},
+ {id:"tvar_knedliky_klasik",name:"Tvarohové knedlíky",cat:"sweet",time:30,porce:2,meals:["obed","vecere"],quick:false,kcal:520,p:24,c:68,f:14,
+  ing:[["Tvaroh","250 g"],["Hrubá mouka","150 g"],["Vejce","1 ks"],["Máslo","na přelití"],["Cukr","na posyp"],["Sůl","špetka"]],
+  steps:["Z tvarohu, mouky, vejce a špetky soli zpracuj těsto a nech chvíli odpočinout.","Tvaruj knedlíky a vař v osolené vodě ~5–6 min, dokud nevyplavou.","Přelij rozpuštěným máslem, posyp tvarohem a cukrem."]},
+ {id:"palacinky",name:"Palačinky s marmeládou",cat:"sweet",time:20,porce:2,meals:["vecere"],quick:true,cl:true,kcal:520,p:14,c:80,f:14,
+  ing:[["Hladká mouka","150 g"],["Mléko","300 ml"],["Vejce","2 ks"],["Marmeláda","na potření"],["Máslo","na pánev"],["Cukr",""]],
+  steps:["Z mouky, mléka a vajec ušlehej řídké těsto.","Smaž tenké palačinky na másle.","Potři marmeládou a sroluj."]},
+ {id:"livance",name:"Lívance s tvarohem",cat:"sweet",time:25,porce:2,meals:["vecere"],quick:true,kcal:480,p:20,c:60,f:14,
+  ing:[["Hladká mouka","150 g"],["Mléko","250 ml"],["Vejce","2 ks"],["Tvaroh","150 g"],["Kvasnice","¼ kostky"],["Cukr",""],["Máslo","na pánev"]],
+  steps:["Z mouky, mléka, vajec a kvasnic ušlehej těsto, nech nakynout.","Smaž malé lívance.","Podávej s tvarohem a cukrem."]},
+ {id:"mlecna_ryze",name:"Sladká mléčná rýže se skořicí",cat:"sweet",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:460,p:12,c:82,f:8,
+  ing:[["Rýže","150 g"],["Mléko","600 ml"],["Cukr","2 lžíce"],["Skořice",""],["Máslo","kousek"]],
+  steps:["Rýži vař v mléku doměkka, občas zamíchej.","Oslaď a přidej kousek másla.","Posyp skořicí s cukrem."]},
+ {id:"tvar_knedliky",name:"Tvarohové knedlíky s ovocem",cat:"sweet",time:30,porce:2,meals:["obed","vecere"],quick:false,kcal:520,p:22,c:70,f:12,
+  ing:[["Tvaroh","250 g"],["Hladká mouka","120 g"],["Vejce","1 ks"],["Jahody","hrst"],["Máslo","na přelití"],["Cukr","na posyp"]],
+  steps:["Smíchej tvaroh, mouku a vejce v těsto.","Tvaruj knedlíky s ovocem uvnitř, vař ~5 min.","Přelij máslem, posyp cukrem."]},
+
+ // ── Z Food listu: OBĚDY ──
+ {id:"nivova_kure",name:"Těstoviny s nivovou omáčkou a kuřecím",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:720,p:42,c:74,f:28,
+  ing:[["Kuřecí prsa","300 g"],["Těstoviny","200 g"],["Niva","100 g"],["Smetana na vaření","200 ml"],["Cibule","1 ks"],["Česnek","1 stroužek"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Uvař těstoviny al dente.","Orestuj nakrájené kuře s cibulí a česnekem.","Přilij smetanu, vmíchej rozdrobenou nivu a nech rozpustit.","Smíchej s těstovinami, dochuť pepřem."]},
+ {id:"gnocchi_spenat",name:"Gnocchi se špenátem a kuřecím",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:660,p:40,c:72,f:24,
+  ing:[["Gnocchi","500 g"],["Kuřecí prsa","300 g"],["Listový špenát","150 g"],["Smetana na vaření","150 ml"],["Česnek","2 stroužky"],["Parmazán","40 g"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Uvař gnocchi (vyplavou).","Orestuj kuře, přidej česnek a špenát, nech zavadnout.","Přilij smetanu, krátce povař.","Vmíchej gnocchi a parmazán, dochuť."]},
+ {id:"lasagne",name:"Lasagne",cat:"hovez",time:75,porce:2,meals:["obed"],quick:false,cl:true,kcal:780,p:42,c:62,f:38,
+  ing:[["Lasagne plátky","8 ks"],["Mleté hovězí","350 g"],["Drcená rajčata","400 g"],["Mléko","400 ml"],["Máslo","30 g"],["Hladká mouka","30 g"],["Cibule","1 ks"],["Česnek","2 stroužky"],["Sýr strouhaný","100 g"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Osmahni cibuli, česnek a maso, zalij rajčaty a 20 min dus.","Z másla, mouky a mléka uvař bešamel.","Vrstvi plátky, masovou a bešamelovou omáčku.","Posyp sýrem a peč na 180 °C ~30 min."]},
+ {id:"tagliatelle_spenat",name:"Tagliatelle se špenátem a rajčaty",cat:"veg",time:35,porce:2,meals:["obed","vecere"],quick:false,cl:true,kcal:580,p:18,c:84,f:18,
+  ing:[["Tagliatelle","220 g"],["Listový špenát","150 g"],["Cherry rajčata","250 g"],["Smetana na vaření","150 ml"],["Česnek","2 stroužky"],["Parmazán","40 g"],["Olivový olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Uvař tagliatelle al dente.","Do zapékací mísy dej špenát, půlené rajčata, česnek, smetanu a olej.","Zapeč na 200 °C ~20 min, promíchej.","Vmíchej těstoviny a parmazán."]},
+ {id:"nudle_burak",name:"Rýžové nudle s burákovým máslem",cat:"kure",time:25,porce:2,meals:["obed","vecere"],quick:true,cl:true,kcal:640,p:38,c:72,f:22,
+  ing:[["Rýžové nudle","200 g"],["Kuřecí prsa","300 g"],["Burákové máslo","3 lžíce"],["Sójová omáčka","3 lžíce"],["Med","1 lžíce"],["Paprika","1 ks"],["Česnek","2 stroužky"],["Zázvor","kousek"],["Olej",""]],
+  steps:["Rýžové nudle uvař/namoč a sceď.","Orestuj kuře a papriku.","Smíchej burákové máslo, sójovku, med, česnek a zázvor s trochou vody na omáčku.","Vmíchej nudle a omáčku, prohřej."]},
+ {id:"quesadilla_mlete",name:"Quesadilla s mletým masem",cat:"hovez",time:25,porce:2,meals:["obed","vecere"],quick:true,kcal:680,p:40,c:52,f:32,
+  ing:[["Tortilla placky","4 ks"],["Mleté hovězí","300 g"],["Sýr strouhaný","150 g"],["Cibule","1 ks"],["Paprika","1 ks"],["Kukuřice","100 g"],["Mletá paprika",""],["Kmín",""],["Olej",""],["Sůl",""]],
+  steps:["Orestuj cibuli a maso s kořením.","Na pánev tortilla, sýr, masová náplň, kukuřice, přiklop druhou.","Opeč z obou stran do zlatova.","Nakrájej na trojúhelníky."]},
+ {id:"svickova",name:"Svíčková na smetaně",cat:"hovez",time:120,porce:2,meals:["obed"],quick:false,kcal:700,p:38,c:48,f:36,
+  ing:[["Hovězí zadní","500 g"],["Mrkev","2 ks"],["Petržel","1 ks"],["Celer","kousek"],["Cibule","1 ks"],["Smetana na vaření","200 ml"],["Hořčice","1 lžíce"],["Ocet",""],["Cukr",""],["Knedlík","k podávání"],["Olej",""],["Sůl",""]],
+  steps:["Maso prošpikuj, osol, opeč ze všech stran.","Přidej nakrájenou kořenovou zeleninu a cibuli, osmahni.","Podlij, dus ~90 min doměkka, maso vyndej.","Zeleninu rozmixuj se smetanou, dochuť octem a cukrem. Podávej s knedlíkem."]},
+ {id:"knedlik_zeli",name:"Bramborový knedlík se zelím a vepřovým",cat:"vepr",time:90,porce:2,meals:["obed"],quick:false,cl:true,kcal:740,p:38,c:70,f:34,
+  ing:[["Vepřová plec","400 g"],["Bramborový knedlík","1 balení"],["Kysané zelí","300 g"],["Cibule","2 ks"],["Kmín",""],["Cukr",""],["Olej",""],["Sůl",""]],
+  steps:["Maso osol, okmínuj a peč v troubě doměkka ~70 min.","Zelí podus s cibulí, kmínem a špetkou cukru.","Uvař/napař bramborový knedlík.","Podávej maso s knedlíkem a zelím."]},
+ {id:"ryze_kure_spalik",name:"Rýže s kuřecími špalíky",cat:"kure",time:45,porce:2,meals:["obed"],quick:false,cl:true,kcal:620,p:44,c:72,f:14,
+  ing:[["Kuřecí špalíky","500 g"],["Rýže","180 g"],["Česnek","3 stroužky"],["Mletá paprika","1 lžíce"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Špalíky potři olejem, česnekem, paprikou, osol.","Peč na 200 °C ~40 min do křupava.","Uvař rýži.","Podávej špalíky s rýží."]},
+ {id:"ryze_vepr_zampiony",name:"Rýže s vepřovým a žampiony",cat:"vepr",time:40,porce:2,meals:["obed"],quick:false,cl:true,kcal:640,p:42,c:68,f:22,
+  ing:[["Vepřová panenka","400 g"],["Žampiony","250 g"],["Rýže","180 g"],["Cibule","1 ks"],["Smetana na vaření","150 ml"],["Česnek","2 stroužky"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Nakrájené maso opeč, vyndej.","Osmahni cibuli, česnek a žampiony.","Přilij smetanu, vrať maso, povař.","Podávej s uvařenou rýží."]},
+ {id:"brambory_teriyaki",name:"Brambory s kuřecími špalíky teriyaki",cat:"kure",time:45,porce:2,meals:["obed"],quick:false,cl:true,kcal:660,p:44,c:70,f:18,
+  ing:[["Kuřecí špalíky","500 g"],["Brambory","600 g"],["Sójová omáčka","4 lžíce"],["Med","2 lžíce"],["Česnek","2 stroužky"],["Zázvor","kousek"],["Sezam","na posyp"],["Olej",""],["Sůl",""]],
+  steps:["Brambory nakrájej, potři olejem a peč na 200 °C ~35 min.","Špalíky opeč, zalij směsí sójovky, medu, česneku a zázvoru.","Nech zredukovat na lesklou glazuru.","Posyp sezamem, podávej s bramborami."]},
+ {id:"rizky",name:"Brambory a řízky",cat:"vepr",time:40,porce:2,meals:["obed"],quick:false,cl:true,kcal:780,p:42,c:64,f:38,
+  ing:[["Vepřová kotleta","400 g"],["Brambory","600 g"],["Vejce","2 ks"],["Strouhanka","100 g"],["Hladká mouka","60 g"],["Olej","na smažení"],["Sůl",""],["Máslo",""]],
+  steps:["Maso naklepej, osol.","Obal v mouce, vejci a strouhance.","Smaž na rozpáleném oleji dozlatova.","Podávej s vařenými bramborami s máslem."]},
+ {id:"smazeny_syr",name:"Brambory a smažený sýr",cat:"veg",time:35,porce:2,meals:["obed","vecere"],quick:false,cl:true,kcal:720,p:28,c:62,f:40,
+  ing:[["Eidam v bloku","300 g"],["Brambory","600 g"],["Vejce","2 ks"],["Strouhanka","100 g"],["Hladká mouka","60 g"],["Olej","na smažení"],["Tatarská omáčka","k podávání"],["Sůl",""]],
+  steps:["Sýr nakrájej na plátky.","Obal v mouce, vejci a strouhance (ideálně dvakrát).","Smaž dozlatova.","Podávej s vařenými bramborami a tatarkou."]},
+ {id:"losos_brambory",name:"Brambory s lososem",cat:"ryba",time:35,porce:2,meals:["obed","vecere"],quick:false,cl:true,kcal:620,p:42,c:48,f:28,
+  ing:[["Losos filet","350 g"],["Brambory","600 g"],["Citron","½ ks"],["Máslo","30 g"],["Česnek","1 stroužek"],["Kopr","hrst"],["Olivový olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Brambory uvař nebo upeč.","Lososa osol, opepři, pokapej citronem.","Opeč na másle z obou stran (kůží dolů jako první).","Podávej s bramborami, posyp koprem."]},
+ {id:"gratin_vepr",name:"Gratinované brambory s vepřovým",cat:"vepr",time:75,porce:2,meals:["obed"],quick:false,cl:true,kcal:780,p:40,c:58,f:42,
+  ing:[["Vepřová panenka","400 g"],["Brambory","700 g"],["Smetana na vaření","250 ml"],["Sýr strouhaný","100 g"],["Česnek","2 stroužky"],["Muškátový oříšek",""],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Brambory nakrájej na tenké plátky, vrstvi do zapékací mísy.","Zalij smetanou s česnekem a muškátem, posyp sýrem.","Peč na 180 °C ~45 min.","Mezitím opeč osolenou panenku a podávej k bramborám."]},
+ {id:"hranolky_horcice",name:"Hranolky s vepřovým s hořčičnou omáčkou",cat:"vepr",time:35,porce:2,meals:["obed"],quick:false,cl:true,kcal:760,p:42,c:60,f:38,
+  ing:[["Vepřová panenka","400 g"],["Hranolky mražené","500 g"],["Smetana na vaření","200 ml"],["Hořčice dijon","2 lžíce"],["Cibule","1 ks"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Hranolky upeč v troubě dle návodu.","Nakrájenou panenku opeč, vyndej.","Osmahni cibuli, přilij smetanu a hořčici, povař.","Vrať maso a podávej s hranolky."]},
+ {id:"hranolky_zampiony",name:"Hranolky s vepřovým a žampiony",cat:"vepr",time:35,porce:2,meals:["obed"],quick:false,cl:true,kcal:740,p:42,c:58,f:36,
+  ing:[["Vepřová panenka","400 g"],["Hranolky mražené","500 g"],["Žampiony","250 g"],["Smetana na vaření","200 ml"],["Cibule","1 ks"],["Česnek","1 stroužek"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Hranolky upeč dle návodu.","Opeč nakrájené maso, vyndej.","Osmahni cibuli, česnek a žampiony, přilij smetanu, povař.","Vrať maso a podávej s hranolky."]},
+ {id:"hranolky_niva",name:"Hranolky s nivovou omáčkou a kuřecím",cat:"kure",time:35,porce:2,meals:["obed"],quick:false,cl:true,kcal:760,p:42,c:58,f:38,
+  ing:[["Kuřecí prsa","350 g"],["Hranolky mražené","500 g"],["Niva","100 g"],["Smetana na vaření","200 ml"],["Cibule","1 ks"],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Hranolky upeč dle návodu.","Opeč nakrájené kuře.","Osmahni cibuli, přilij smetanu a rozdrobenou nivu, nech rozpustit.","Vrať kuře a podávej s hranolky."]},
+ {id:"hranolky_fazolky",name:"Hranolky s vepřovým a zelenými fazolkami",cat:"vepr",time:35,porce:2,meals:["obed"],quick:false,cl:true,kcal:700,p:42,c:56,f:32,
+  ing:[["Vepřová panenka","400 g"],["Hranolky mražené","500 g"],["Zelené fazolky","250 g"],["Slanina","60 g"],["Česnek","2 stroužky"],["Máslo",""],["Olej",""],["Sůl",""],["Pepř",""]],
+  steps:["Hranolky upeč dle návodu.","Fazolky spař, pak osmahni na másle se slaninou a česnekem.","Nakrájenou panenku opeč.","Podávej maso s hranolky a fazolkami."]},
+ {id:"masove_kulicky",name:"Hranolky s masovými kuličkami ala IKEA",cat:"hovez",time:40,porce:2,meals:["obed"],quick:false,cl:true,kcal:780,p:40,c:60,f:40,
+  ing:[["Mleté hovězí","350 g"],["Hranolky mražené","500 g"],["Smetana na vaření","200 ml"],["Hovězí vývar","150 ml"],["Hladká mouka","1 lžíce"],["Hořčice","1 lžička"],["Cibule","1 ks"],["Brusinky","k podávání"],["Olej",""],["Sůl",""]],
+  steps:["Z masa s cibulí vytvaruj kuličky, opeč ze všech stran.","Hranolky upeč dle návodu.","Z výpeku, mouky, vývaru a smetany udělej omáčku, dochuť hořčicí.","Podávej kuličky v omáčce s hranolky a brusinkami."]},
+ {id:"hamburger_bowl",name:"Hamburger bowl",cat:"hovez",time:30,porce:2,meals:["obed","vecere"],quick:true,kcal:640,p:42,c:38,f:34,
+  ing:[["Mleté hovězí","350 g"],["Rýže","150 g"],["Salátová okurka","½ ks"],["Rajčata","2 ks"],["Listový salát","hrst"],["Sýr čedar","60 g"],["Kečup",""],["Hořčice",""],["Cibule","1 ks"],["Olej",""],["Sůl",""]],
+  steps:["Uvař rýži.","Osmahni cibuli a mleté maso, osol.","Do misky navrstvi rýži, maso, nakrájenou zeleninu a sýr.","Pokapej kečupem a hořčicí."]},
+
+ // ── Z Food listu: VEČEŘE ──
+ {id:"bramboraky",name:"Bramboráky se slaninou a zakyskou",cat:"vepr",time:30,porce:2,meals:["vecere"],quick:false,kcal:560,p:18,c:54,f:30,
+  ing:[["Brambory","700 g"],["Slanina","120 g"],["Zakysaná smetana","150 g"],["Vejce","1 ks"],["Hladká mouka","3 lžíce"],["Česnek","2 stroužky"],["Majoránka",""],["Olej","na smažení"],["Sůl",""]],
+  steps:["Brambory nastrouhej najemno, slij přebytečnou vodu.","Vmíchej vejce, mouku, česnek, majoránku a sůl.","Smaž placky dozlatova.","Podávej se slaninou a zakysanou smetanou."]},
+ {id:"parky",name:"Párky",cat:"vepr",time:10,porce:2,meals:["vecere"],quick:true,kcal:420,p:20,c:30,f:26,
+  ing:[["Párky","4 ks"],["Pečivo","k podávání"],["Hořčice",""],["Kečup",""]],
+  steps:["Párky povař ~5 min nebo opeč.","Podávej s pečivem, hořčicí a kečupem."]},
+ {id:"hermelin",name:"Grilované hermelíny",cat:"veg",time:20,porce:2,meals:["vecere"],quick:true,kcal:480,p:22,c:24,f:32,
+  ing:[["Hermelín","2 ks"],["Pečivo","k podávání"],["Česnek","2 stroužky"],["Olivový olej",""],["Bylinky",""],["Pepř",""]],
+  steps:["Hermelíny nařízni, prošpikuj česnekem, pokapej olejem.","Zabal do alobalu nebo dej do zapékací misky.","Peč/griluj ~15 min, dokud nezměkne.","Podávej s pečivem."]},
+ {id:"michana_vajicka",name:"Míchaná vajíčka",cat:"veg",time:10,porce:2,meals:["vecere"],quick:true,kcal:360,p:22,c:18,f:22,
+  ing:[["Vejce","5 ks"],["Máslo","20 g"],["Pažitka","hrst"],["Pečivo","k podávání"],["Sůl",""],["Pepř",""]],
+  steps:["Vejce rozšlehej, osol.","Na másle za stálého míchání usmaž do krému.","Posyp pažitkou, podávej s pečivem."]},
+ {id:"bagetky_sunka",name:"Bagetky se šunkou",cat:"vepr",time:15,porce:2,meals:["vecere"],quick:true,kcal:520,p:26,c:54,f:22,
+  ing:[["Bageta","2 ks"],["Šunka","120 g"],["Sýr strouhaný","100 g"],["Máslo","na potření"],["Kečup",""]],
+  steps:["Bagety podélně rozkroj, potři máslem.","Naplň šunkou a sýrem.","Zapeč v troubě ~10 min, dokud se sýr nerozteče."]},
+ {id:"langose",name:"Langoše",cat:"veg",time:40,porce:2,meals:["vecere"],quick:false,kcal:620,p:18,c:70,f:30,
+  ing:[["Hladká mouka","300 g"],["Bílý jogurt","150 g"],["Kvasnice","½ kostky"],["Česnek","3 stroužky"],["Sýr strouhaný","100 g"],["Zakysaná smetana","100 g"],["Olej","na smažení"],["Sůl",""]],
+  steps:["Z mouky, jogurtu, kvasnic a soli zadělej těsto, nech kynout.","Rozděl, vytvaruj placky.","Smaž v rozpáleném oleji z obou stran.","Potři česnekem, posyp sýrem, mázni zakysanou smetanou."]},
+ {id:"tortilly",name:"Plněné tortilly",cat:"kure",time:25,porce:2,meals:["vecere"],quick:true,kcal:600,p:38,c:52,f:26,
+  ing:[["Tortilla placky","4 ks"],["Kuřecí prsa","300 g"],["Listový salát","hrst"],["Rajčata","1 ks"],["Salátová okurka","½ ks"],["Sýr strouhaný","80 g"],["Zakysaná smetana","100 g"],["Olej",""],["Sůl",""]],
+  steps:["Orestuj nakrájené kuře, osol.","Na tortillu dej salát, kuře, nakrájenou zeleninu a sýr.","Mázni zakysanou smetanou.","Zaroluj a podávej."]},
+ {id:"smes_tousty",name:"Směs na tousty",cat:"vepr",time:15,porce:2,meals:["vecere"],quick:true,kcal:540,p:22,c:38,f:34,
+  ing:[["Toustový chléb","6 plátků"],["Šunka","100 g"],["Sýr strouhaný","120 g"],["Vejce","1 ks"],["Majonéza","2 lžíce"],["Cibule","½ ks"],["Kečup",""]],
+  steps:["Smíchej nakrájenou šunku, sýr, vejce, majonézu a cibuli.","Nanes směs na plátky toustového chleba.","Zapeč v troubě nebo toustovači dozlatova."]},
+ {id:"pizza_polotovar",name:"Pizza polotovárek",cat:"vepr",time:20,porce:2,meals:["vecere"],quick:true,kcal:660,p:28,c:66,f:30,
+  ing:[["Pizza polotovar","2 ks"],["Kečup/pasáta","na potření"],["Sýr strouhaný","150 g"],["Šunka","100 g"],["Žampiony","100 g"],["Kukuřice","50 g"],["Oregano",""]],
+  steps:["Polotovar potři rajčatovým základem.","Poklaď šunkou, žampiony, kukuřicí, posyp sýrem.","Peč dle návodu na obalu (~12 min).","Posyp oreganem."]},
+ {id:"tunak_pomazanka",name:"Tuňáková pomazánka",cat:"ryba",time:10,porce:2,meals:["vecere"],quick:true,kcal:420,p:28,c:30,f:22,
+  ing:[["Tuňák v konzervě","2 konzervy"],["Tavený sýr","100 g"],["Majonéza","1 lžíce"],["Cibule","½ ks"],["Vejce","2 ks"],["Pečivo","k podávání"],["Sůl",""],["Pepř",""]],
+  steps:["Vejce uvař natvrdo a nasekej.","Smíchej scezený tuňák, tavený sýr, majonézu, cibuli a vejce.","Dochuť solí a pepřem.","Podávej s pečivem."]},
+ {id:"balkan_pomazanka",name:"Pomazánka z balkánského sýra",cat:"veg",time:10,porce:2,meals:["vecere"],quick:true,kcal:380,p:16,c:24,f:26,
+  ing:[["Balkánský sýr","200 g"],["Bílý jogurt","100 g"],["Česnek","2 stroužky"],["Paprika","½ ks"],["Pažitka","hrst"],["Pečivo","k podávání"],["Pepř",""]],
+  steps:["Balkánský sýr rozmačkej vidličkou.","Vmíchej jogurt, prolisovaný česnek a nasekanou papriku.","Posyp pažitkou.","Podávej s pečivem."]},
+ {id:"bagetky_brusinky",name:"Bagetky s brusinkami, slaninou a hermelínem",cat:"vepr",time:20,porce:2,meals:["vecere"],quick:true,kcal:600,p:24,c:52,f:34,
+  ing:[["Bageta","2 ks"],["Hermelín","1 ks"],["Slanina","80 g"],["Brusinky","3 lžíce"],["Máslo","na potření"]],
+  steps:["Slaninu osmahni dokřupava.","Bagety rozkroj, potři máslem.","Naplň plátky hermelínu, slaninou a brusinkami.","Zapeč v troubě ~10 min."]},
+ {id:"rolada",name:"Roláda z listového těsta",cat:"vepr",time:35,porce:2,meals:["vecere"],quick:false,kcal:620,p:24,c:48,f:38,
+  ing:[["Listové těsto","1 balení"],["Šunka","120 g"],["Sýr strouhaný","120 g"],["Vejce","1 ks"],["Hořčice","1 lžíce"],["Sezam","na posyp"]],
+  steps:["Listové těsto rozviň, potři hořčicí.","Poklaď šunkou a sýrem, zaroluj.","Potři rozšlehaným vejcem, posyp sezamem.","Peč na 200 °C ~25 min dozlatova."]}
+];
+
+// ═══════════════════════════════════════════
+// NUTRITIONAL DATA (pro odhad maker u vlastních receptů)
+// ═══════════════════════════════════════════
+const NUTR=[
+ [["olivový olej","olej"],[884,0,0,100]],[["máslo"],[717,0.9,0.1,81]],[["med"],[304,0.3,82,0]],
+ [["cukr"],[400,0,100,0]],[["marmelád"],[250,0.5,62,0]],[["hladká mouka","hrubá mouka","mouka"],[364,10,76,1]],
+ [["strouhank"],[350,12,72,4]],[["parmazán"],[392,36,3,26]],[["sýr čedar","čedar"],[400,25,1,33]],
+ [["niva"],[353,21,2,29]],[["balkánský sýr","balkán"],[260,17,1,21]],[["hermelín"],[300,20,1,24]],
+ [["tavený sýr"],[280,12,5,24]],[["eidam"],[330,26,0,25]],[["sýr"],[350,25,2,27]],
+ [["tvaroh"],[100,12,4,4]],[["bílý jogurt","jogurt"],[61,3.5,5,3.3]],[["zakysaná smetana"],[190,3,4,18]],
+ [["smetana"],[195,3,4,19]],[["kokosové mléko"],[200,2,3,21]],[["mléko"],[64,3.4,5,3.6]],
+ [["vejce","žloutk"],[143,13,1,10]],[["kuřecí špalík","kuřecí prsa","kuřec"],[165,31,0,3.6]],[["mleté hovězí"],[250,26,0,17]],
+ [["hovězí zadní","hovězí svíčková","hovězí"],[180,21,0,10]],[["vepřová panenka"],[143,21,0,6]],[["vepřová kotleta","kotleta"],[210,20,0,14]],
+ [["vepřová žebra","žebra"],[290,18,0,24]],[["vepřová plec","vepřov"],[240,18,0,18]],[["slanina"],[540,12,1,53]],
+ [["šunka"],[145,18,1,7]],[["párk"],[290,12,2,26]],[["tuňák"],[116,26,0,1]],[["losos"],[208,20,0,13]],[["gnocchi","noky"],[150,4,32,1]],
+ [["lasagne","tagliatelle","špagety","těstoviny","nudle"],[360,12,72,1.5]],[["rýže"],[360,7,79,1]],
+ [["toustový chléb","tousty"],[270,9,49,3]],[["burgerová bulka","bulka"],[280,9,48,5]],[["bageta"],[270,9,52,2]],
+ [["naan"],[310,9,52,6]],[["tortilla"],[310,8,50,8]],[["knedlík"],[180,6,36,1]],[["listové těsto"],[380,6,36,24]],
+ [["pita"],[275,9,52,3]],[["pizza polotovar","polotovar"],[270,11,38,8]],[["pečivo","chléb","chleba"],[265,9,50,3]],
+ [["batát"],[86,1.6,20,0.1]],[["hranolky"],[160,2.5,24,6]],[["brambor"],[77,2,17,0.1]],[["cizrna"],[130,8,22,2.6]],
+ [["fazolk"],[31,1.8,7,0.1]],[["fazole"],[110,7,20,0.5]],[["kukuřice"],[86,3,19,1.2]],[["rajský protlak","protlak"],[82,4,19,0.5]],
+ [["cherry rajčata","drcená rajčata","rajčata","rajče"],[28,1.3,5,0.3]],[["kysané zelí","zelí"],[19,1,4,0.1]],[["cibule","cibulka"],[40,1.1,9,0.1]],
+ [["česnek"],[149,6,33,0.5]],[["mrkev"],[41,0.9,10,0.2]],[["celer"],[42,1.5,9,0.3]],[["paprika"],[31,1,6,0.3]],[["cuketa"],[17,1.2,3,0.3]],
+ [["žampiony","houb"],[22,3,3.3,0.3]],[["zeleninový vývar","hovězí vývar","vývar"],[6,0.5,1,0.1]],[["okurka","okurk"],[15,0.7,3.6,0.1]],
+ [["majonéz","majonez"],[680,1,1,75]],[["tatarsk"],[400,1,5,42]],[["listový špenát","špenát"],[23,2.9,3.6,0.4]],[["listový salát","salát"],[15,1.4,3,0.2]],
+ [["zázvor"],[80,1.8,18,0.8]],[["petržel","petržel"],[36,3,6,0.8]],[["bazalka","šalvěj"],[23,3,2.6,0.6]],[["kopr"],[43,3.5,7,1]],[["pažitk"],[30,3,4,0.7]],
+ [["jahod","ovoc"],[40,0.8,9,0.3]],[["brusink"],[300,0.1,75,0.5]],[["citron"],[29,1.1,9,0.3]],[["sezam"],[573,17,23,50]],[["burákov"],[588,25,20,50]],
+ [["muškát"],[525,6,49,36]],[["mirin"],[230,0.2,43,0]],[["saké","sake"],[134,0.5,5,0]],[["sójová omáčka","sója"],[53,8,4,0]],
+ [["kečup","pasáta"],[110,1,26,0.1]],[["hořčice"],[100,6,9,5]],[["bílé víno","víno"],[82,0,2.6,0]]];
+const PIECE=[[["vejce"],58],[["cibule"],110],[["paprika"],150],[["okurka"],300],[["rajčata","rajče"],120],[["mrkev"],70],[["citron"],100],[["tortilla"],50],[["naan"],90],[["bageta"],150],[["bulka"],75],[["toustový chléb"],28],[["šunka"],25],[["párk"],70],[["sýr"],22],[["pita"],70],[["hermelín"],100],[["pečivo","chléb"],60],[["brambor"],90]];
+const CANS=[[["tuňák"],80],[["cizrna"],240],[["fazole"],240],[["kukuřice"],140],[["kokosové mléko"],400],[["rajčata"],400]];
+
+// ═══════════════════════════════════════════
+// PLAN (injektovaný z chatu)
+// ═══════════════════════════════════════════
+const PLAN={version:"2026-W26.2",start:"Út",
+ // jídla označená "jíme venku" (klíče den_slot) – přenese se i na telefon
+ eatOut:["So_obed","So_vecere","Ne_obed"],
+ menu:{
+ "Út":{obed:"smazeny_syr",vecere:"pizza_polotovar"},
+ "St":{obed:"chili",vecere:"bramboraky"},
+ "Čt":{obed:"chili",vecere:"tousty"},
+ "Pá":{obed:"rizky",vecere:"tortilly"},
+ "So":{obed:"tousty",vecere:"tunak"},
+ "Ne":{obed:"omeleta",vecere:"bagetky_brusinky"}
+}};
+
+// ═══════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════
+const LS={
+  _g(k,d){try{return JSON.parse(localStorage.getItem(k)??JSON.stringify(d))}catch{return d}},
+  _s(k,v){localStorage.setItem(k,JSON.stringify(v))},
+  get ratings(){return this._g("jid_ratings",{})},  set ratings(v){this._s("jid_ratings",v)},
+  get menu(){return this._g("jid_menu",null)},       set menu(v){this._s("jid_menu",v)},
+  get pantry(){return this._g("jid_pantry",[])},     set pantry(v){this._s("jid_pantry",v)},
+  get bought(){return this._g("jid_bought",[])},     set bought(v){this._s("jid_bought",v)},
+  get custom(){return this._g("jid_custom",[])},     set custom(v){this._s("jid_custom",v)},
+  get history(){return this._g("jid_history",{})},   set history(v){this._s("jid_history",v)},
+  get removed(){return this._g("jid_removed",[])},   set removed(v){this._s("jid_removed",v)},
+  get start(){return +(localStorage.getItem("jid_start")||0)}, set start(v){localStorage.setItem("jid_start",v)},
+  get confirmed(){return this._g("jid_confirmed",null)},
+  set confirmed(v){v===null?localStorage.removeItem("jid_confirmed"):this._s("jid_confirmed",v)},
+  get cooked(){return this._g("jid_cooked",{})},     set cooked(v){this._s("jid_cooked",v)},
+  get manualItems(){return this._g("jid_manual",[])},set manualItems(v){this._s("jid_manual",v)},
+  get eatOut(){return this._g("jid_eatout",[])},     set eatOut(v){this._s("jid_eatout",v)},
+};
+// "jíme venku" se eviduje pro konkrétní jídlo (den_slot), ne pro celý den
+function isEatOut(day,slot){return LS.eatOut.includes(day+"_"+slot)}
+function toggleEatOut(day,slot){const k=day+"_"+slot;let e=new Set(LS.eatOut);e.has(k)?e.delete(k):e.add(k);LS.eatOut=[...e];LS.confirmed=null;render();toast(e.has(k)?"🍽️ Jíme venku":"Vaříme doma")}
+
+// ═══════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════
+function getAll(){const rm=new Set(LS.removed);return R.concat(LS.custom).filter(r=>!rm.has(r.id))}
+function byId(id){return getAll().find(r=>r.id===id)}
+function rating(id){const r=LS.ratings;return (id in r)?r[id]:(DEFAULT_RATINGS[id]||0)}
+function setRating(id,v){const r=LS.ratings;if(r[id]===v)v=0;r[id]=v;LS.ratings=r}
+function weight(id){const r=rating(id);return r>0?r*r:6}
+function days(){const s=Math.min(Math.max(LS.start,0),6);return ALLDAYS.slice(s)}
+function dayFull(d){return{Po:"Pondělí",Út:"Úterý",St:"Středa",Čt:"Čtvrtek",Pá:"Pátek",So:"Sobota",Ne:"Neděle"}[d]}
+function todayAbbr(){return["Ne","Po","Út","St","Čt","Pá","So"][new Date().getDay()]}
+
+function catTag(c){const k=CAT[c];return`<span class="tag t-${k.c}">${k.e} ${k.l}</span>`}
+function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}`}
+function starsHTML(id,sz){const r=rating(id);let h=`<span class="stars ${sz||''}" data-rate="${id}">`;for(let i=1;i<=5;i++)h+=`<span class="s ${i<=r?'on':''}" data-v="${i}">★</span>`;return h+"</span>"}
+function macroRow(r){return`<div class="macros"><span class="mb m-kcal">🔥 ${r.kcal} kcal</span><span class="mb m-prot">B ${r.p} g</span><span class="mb m-carb">S ${r.c} g</span><span class="mb m-fat">T ${r.f} g</span></div>`}
+function macroBars(p,c,f){const pk=p*4,ck=c*4,fk=f*9,t=pk+ck+fk||1;return`<div class="bars"><i style="width:${pk/t*100}%;background:var(--prot)"></i><i style="width:${ck/t*100}%;background:var(--carb)"></i><i style="width:${fk/t*100}%;background:var(--fat)"></i></div>`}
+
+let _toastT;
+function toast(msg,dur=2600){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(_toastT);_toastT=setTimeout(()=>el.classList.remove("show"),dur)}
+
+let _confirmCb=null;
+function confirm2(msg,cb,yes="Potvrdit",danger=false){
+  _confirmCb=cb;
+  openModal(`<div class="handle"></div><p style="margin:4px 0 20px;font-size:15px">${msg}</p>
+  <div class="two"><button class="btn ghost block" onclick="closeModal()">Zrušit</button>
+  <button class="btn ${danger?'danger':''} block" onclick="_doConfirm()">${yes}</button></div>`);
+}
+function _doConfirm(){const cb=_confirmCb;_confirmCb=null;closeModal();if(cb)cb()}
+
+// ═══════════════════════════════════════════
+// AMOUNT PARSING & AGGREGATION
+// ═══════════════════════════════════════════
+function parseNum(s){
+  s=String(s).replace(/½/g,"0.5").replace(/¼/g,"0.25").replace(/¾/g,"0.75").replace(",",".");
+  const r=s.match(/(\d+(?:\.\d+)?)\s*[–\-]\s*(\d+(?:\.\d+)?)/);if(r)return(+r[1]+ +r[2])/2;
+  const m=s.match(/(\d+(?:\.\d+)?)/);return m?+m[0]:null;
+}
+// Sečte množství stejné suroviny napříč recepty → text k zobrazení
+function mergeAmounts(amts){
+  const SKIP=/podáv|posyp|ozdob|chuť|volit|potření|pánev|přeli|k podá|na ozd/i;
+  const valid=amts.filter(a=>a&&!SKIP.test(a));
+  if(!valid.length)return"";
+  const b={},other=[];
+  for(const raw of valid){
+    const s=raw.toLowerCase().replace(/½/g,"0.5").replace(/¼/g,"0.25").replace(/¾/g,"0.75").replace(",",".");
+    const n=parseNum(s);
+    if(/kg/.test(s)){b.g=(b.g||0)+(n||1)*1000;continue}
+    if(/\bg\b/.test(s)){b.g=(b.g||0)+(n||0);continue}
+    if(/\bl\b/.test(s)){b.ml=(b.ml||0)+(n||1)*1000;continue}
+    if(/ml/.test(s)){b.ml=(b.ml||0)+(n||0);continue}
+    if(/lžičk|čajov/.test(s)){b.tsp=(b.tsp||0)+(n||1);continue}
+    if(/lžíc|lžic|polév/.test(s)){b.tbsp=(b.tbsp||0)+(n||1);continue}
+    if(/konzerv|plechov/.test(s)){b.konz=(b.konz||0)+(n||1);continue}
+    if(/balení/.test(s)){b.bal=(b.bal||0)+(n||1);continue}
+    if(/\bks\b|kus/.test(s)){b.ks=(b.ks||0)+(n||1);continue}
+    if(/stroužk|stroužek/.test(s)){b.strz=(b.strz||0)+(n||1);continue}
+    if(/plátk|plátek/.test(s)){b.pltk=(b.pltk||0)+(n||1);continue}
+    if(/hrst/.test(s)){b.hrst=(b.hrst||0)+(n||1);continue}
+    if(n!==null){b.ks=(b.ks||0)+n;continue}
+    other.push(raw);
+  }
+  const parts=[];
+  if(b.g!==undefined){const g=b.g;if(g>=950)parts.push(`~${Math.round(g/100)/10} kg`);else if(g>=1)parts.push(`${Math.round(g)} g`)}
+  if(b.ml!==undefined){const ml=b.ml;parts.push(ml>=950?`~${Math.round(ml/100)/10} l`:`${Math.round(ml)} ml`)}
+  if(b.tbsp)parts.push(`${b.tbsp} lžíce`);
+  if(b.tsp)parts.push(`${b.tsp} lžičky`);
+  if(b.konz)parts.push(`${b.konz}× konzerva`);
+  if(b.bal)parts.push(`${b.bal}× balení`);
+  if(b.strz)parts.push(`${b.strz} stroužků`);
+  if(b.pltk)parts.push(`${b.pltk} plátků`);
+  if(b.hrst)parts.push(`${b.hrst} hrst`);
+  if(b.ks&&!b.g&&!b.ml&&!b.pltk)parts.push(`${Math.round(b.ks*10)/10} ks`);
+  parts.push(...other);
+  return parts.filter(Boolean).join(" + ");
+}
+function shopCatId(name){const n=name.toLowerCase();for(const cat of SHOP_CATS){if(cat.keys.some(k=>n.includes(k)))return cat.id}return"ostatni"}
+
+// Odhad maker
+function findMacro(name){const n=name.toLowerCase();for(const e of NUTR)for(const k of e[0])if(n.includes(k))return e[1];return null}
+function pieceW(name,table,def){const n=name.toLowerCase();for(const e of table)for(const k of e[0])if(n.includes(k))return e[1];return def}
+function gramsOf(name,amt){
+  if(!amt)return 0;const a=amt.toLowerCase();
+  if(/podáv|posyp|ozdob|chuť|chuti|volit|potření|pánev|přeli/.test(a))return 0;
+  const num=parseNum(a);
+  if(/lžičk|čajov/.test(a))return(num||1)*5;
+  if(/lžíc|lžic|polév/.test(a))return(num||1)*15;
+  if(/stroužek|stroužk/.test(a))return(num||1)*5;
+  if(/konzerv|plechov/.test(a))return(num||1)*pieceW(name,CANS,400);
+  if(/balení/.test(a))return(num||1)*400;
+  if(/plátk|plátek/.test(a))return(num||1)*pieceW(name,PIECE,25);
+  if(/hrst/.test(a))return(num||1)*20;
+  if(/svazek|svazk/.test(a))return(num||1)*30;
+  if(/špetk/.test(a))return 1;
+  if(/kostk/.test(a))return(num||0.5)*40;
+  if(/\bks\b|kus/.test(a))return(num||1)*pieceW(name,PIECE,100);
+  if(/kg/.test(a))return(num||0)*1000;
+  if(/ml/.test(a))return num||0;
+  if(/\bg\b|gram/.test(a))return num||0;
+  if(/(^|\s)l(\s|$|itr)/.test(a))return(num||0)*1000;
+  if(num!=null)return num*pieceW(name,PIECE,100);
+  return 0;
+}
+function estimate(ing,porce){let k=0,p=0,c=0,f=0;
+  for(const a of ing){const g=gramsOf(a[0],a[1]),m=findMacro(a[0]);if(!m||!g)continue;k+=m[0]*g/100;p+=m[1]*g/100;c+=m[2]*g/100;f+=m[3]*g/100}
+  const d=porce||1;return{kcal:Math.round(k/d),p:Math.round(p/d),c:Math.round(c/d),f:Math.round(f/d)}
+}
+function parseIngText(t){return(document.getElementById(t)?.value||"").trim().split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split("|");return[p[0].trim(),(p[1]||"").trim()]})}
+
+// Škálování porcí – vynásobí čísla v množství
+function scaleAmt(amt,factor){
+  if(!amt||factor===1)return amt;
+  if(/posyp|ozdob|chuť|potření|pánev|přeli|k podá/i.test(amt))return amt;
+  return amt.replace(/(\d+(?:[,.]\d+)?|½|¼|¾)/g,m=>{const n=parseNum(m);if(n===null)return m;const v=Math.round(n*factor*10)/10;return v%1===0?String(v):String(v).replace(".",",")});
+}
+
+// ═══════════════════════════════════════════
+// PLAN ENGINE (s pravidlem: stejný recept max 1× za 2 týdny)
+// ═══════════════════════════════════════════
+function currentWeek(){
+  const d=new Date(),td=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=td.getUTCDay()||7;td.setUTCDate(td.getUTCDate()+4-day);
+  const y=td.getUTCFullYear(),ys=new Date(Date.UTC(y,0,1));
+  return y+"-W"+String(Math.ceil(((td-ys)/86400000+1)/7)).padStart(2,"0");
+}
+function weekNum(w){const[y,n]=w.split("-W");return+y*100+ +n}
+function isRecentlyUsed(id){const rw=LS.history[id]?weekNum(LS.history[id]):0;return weekNum(currentWeek())-rw<2}
+
+function pickWeighted(pool,used){
+  const fresh=pool.filter(r=>!used.has(r.id)&&!isRecentlyUsed(r.id));
+  const cand=fresh.length?fresh:pool.filter(r=>!used.has(r.id));
+  const arr=cand.length?cand:pool;
+  let tot=arr.reduce((s,r)=>s+weight(r.id),0),x=Math.random()*tot;
+  for(const r of arr){x-=weight(r.id);if(x<=0)return r}
+  return arr[arr.length-1];
+}
+function recordHistory(m){const cw=currentWeek(),h=LS.history;for(const d in m){if(m[d].obed)h[m[d].obed]=cw;if(m[d].vecere)h[m[d].vecere]=cw}LS.history=h}
+function genMenu(){
+  const all=getAll(),lunch=all.filter(r=>r.meals.includes("obed")),dinner=all.filter(r=>r.meals.includes("vecere")&&r.time<=35);
+  const used=new Set(),m={};
+  for(const d of days()){const o=pickWeighted(lunch,used);used.add(o.id);const v=pickWeighted(dinner,used);used.add(v.id);m[d]={obed:o.id,vecere:v.id}}
+  recordHistory(m);LS.menu=m;LS.bought=[];LS.confirmed=null;LS.cooked={};return m;
+}
+function ensureMenu(){
+  let m=LS.menu||{},changed=false;
+  const used=new Set();
+  for(const d of days()){if(m[d]&&byId(m[d].obed))used.add(m[d].obed);if(m[d]&&byId(m[d].vecere))used.add(m[d].vecere)}
+  const all=getAll(),lunch=all.filter(r=>r.meals.includes("obed")),dinner=all.filter(r=>r.meals.includes("vecere")&&r.time<=35);
+  for(const d of days()){
+    if(!m[d]||!byId(m[d].obed)){const o=pickWeighted(lunch,used);used.add(o.id);m[d]={...(m[d]||{}),obed:o.id};changed=true}
+    if(!m[d]||!byId(m[d].vecere)){const v=pickWeighted(dinner,used);used.add(v.id);m[d]={...(m[d]||{}),vecere:v.id};changed=true}
+  }
+  if(changed){LS.menu=m;recordHistory(m)}
+  return m;
+}
+function applyPlan(){
+  if(!PLAN?.menu||localStorage.getItem("jid_plan_version")===PLAN.version)return;
+  if(PLAN.start)LS.start=Math.max(0,ALLDAYS.indexOf(PLAN.start));
+  LS.menu=JSON.parse(JSON.stringify(PLAN.menu));LS.bought=[];LS.confirmed=null;LS.cooked={};
+  LS.eatOut=PLAN.eatOut?[...PLAN.eatOut]:[];
+  recordHistory(LS.menu);
+  localStorage.setItem("jid_plan_version",PLAN.version);
+}
+
+// ═══════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════
+let tab="tyden",filter="all",fSide="all",query="";
+const view=document.getElementById("view");
+const subtitle=document.getElementById("subtitle");
+
+function render(){
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  if(tab==="tyden")renderTyden();
+  else if(tab==="recepty")renderRecepty();
+  else if(tab==="nakup")renderNakup();
+  else renderSpiz();
+}
+
+// ═══════════════════════════════════════════
+// WEEK VIEW
+// ═══════════════════════════════════════════
+function renderTyden(){
+  subtitle.textContent="Týdenní plán + makra";
+  const m=ensureMenu(),dd=days();
+  let tk=0,tp=0,tc=0,tf=0,cookDays=0;
+  for(const d of dd){
+    let dayHas=false;
+    for(const slot of["obed","vecere"]){if(isEatOut(d,slot))continue;const r=byId(m[d][slot]);tk+=r.kcal;tp+=r.p;tc+=r.c;tf+=r.f;dayHas=true}
+    if(dayHas)cookDays++;
+  }
+  const N=cookDays||1;
+  const dk=Math.round(tk/N),dp=Math.round(tp/N),dc=Math.round(tc/N),df=Math.round(tf/N);
+  const cf=LS.confirmed,wk=(PLAN.version||"").split(".")[0],rng=dd.length?`${dd[0]}–${dd[dd.length-1]}`:"";
+  const today=todayAbbr();
+
+  let h=`<div class="card" style="border-color:${cf?'var(--acc2)':'#b4892b'};background:${cf?'rgba(34,197,94,.08)':'rgba(245,158,11,.08)'}">
+    <div class="row spread"><div style="font-weight:700">${cf?'✅ Jídelníček potvrzen':'🟡 Návrh – uprav a potvrď'}</div>
+      <span class="muted">${wk} · ${rng}</span></div>
+    <div class="muted" style="margin-top:4px">${cf?'Potvrzeno '+cf.at+'. Pošli text Claudovi, ať doplní nákup.':'Dolaď si týden (🔀), pak potvrď a pošli Claudovi pro nákup.'}</div>
+    <button class="btn block" style="margin-top:10px${cf?';background:var(--card2);color:var(--txt)':''}" onclick="confirmMenu()">${cf?'📋 Zkopírovat text pro Claude znovu':'✅ Potvrdit jídelníček'}</button>
+  </div>
+  <div class="summary"><div class="muted">Ø na den (2 jídla)</div>
+    <div class="bignum" style="color:var(--kcal)">${dk} kcal</div>
+    ${macroBars(dp,dc,df)}
+    <div class="grid4">
+      <div><div class="v" style="color:var(--prot)">${dp} g</div><div class="k">Bílkoviny</div></div>
+      <div><div class="v" style="color:var(--carb)">${dc} g</div><div class="k">Sacharidy</div></div>
+      <div><div class="v" style="color:var(--fat)">${df} g</div><div class="k">Tuky</div></div>
+      <div><div class="v">${Math.round(tk/100)/10}k</div><div class="k">kcal celkem</div></div>
+    </div></div>
+  <div class="note" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+    <span>📆 Začít od</span>
+    <select class="in" style="width:auto;padding:6px 8px" onchange="setStart(this.value)">${ALLDAYS.map((d,i)=>`<option value="${i}" ${i===LS.start?'selected':''}>${dayFull(d)}</option>`).join("")}</select>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <button class="btn ghost block" onclick="confirmRegen()">✨ Nový týden</button>
+    <button class="btn ghost block" onclick="openSettings()">⚙️ Nastavení</button>
+  </div>
+  <div class="note">Generuje podle hvězdiček — víc hvězd = častěji. Stejný recept se neopakuje 2 týdny po sobě. 🔀 prohodí jedno jídlo.</div>`;
+
+  for(const d of dd){
+    const isToday=d===today,o=byId(m[d].obed),v=byId(m[d].vecere);
+    let dk=0,dp=0;
+    if(!isEatOut(d,"obed")){dk+=o.kcal;dp+=o.p}
+    if(!isEatOut(d,"vecere")){dk+=v.kcal;dp+=v.p}
+    h+=`<div class="daycard ${isToday?'today':''}">
+      <div class="row spread">
+        <div><div class="day">${isToday?'📍 ':''}${dayFull(d)}</div>${isToday?'<div style="font-size:11px;color:var(--acc);font-weight:700">Dnes</div>':''}</div>
+        <div class="muted" style="font-size:12px">🔥 ${dk} kcal · B ${dp} g</div>
+      </div>
+      ${mealRow(d,"obed","🍲 Oběd",o)}${mealRow(d,"vecere","⚡ Večeře",v)}
+    </div>`;
+  }
+  view.innerHTML=h;
+}
+function mealRow(day,slot,lbl,r){
+  const key=day+"_"+slot,done=LS.cooked[key]===true,out=isEatOut(day,slot);
+  if(out){
+    return`<div class="meal" style="opacity:.6">
+      <div class="lbl">${lbl}</div>
+      <div class="row spread">
+        <div class="name" style="color:var(--mut)">🍽️ Jíme venku</div>
+        <button class="cook-btn" onclick="toggleEatOut('${day}','${slot}')">🍳 Vařit doma</button>
+      </div>
+    </div>`;
+  }
+  return`<div class="meal ${done?'cooked':''}">
+    <div class="lbl">${lbl}</div>
+    <div class="row spread">
+      <div onclick="openRecipe('${r.id}')" style="flex:1;cursor:pointer">
+        <div class="name">${r.name}</div>
+        <div class="row" style="gap:6px;margin-top:5px">${catTag(r.cat)} ${flags(r)} <span class="muted">${r.time} min · 🔥 ${r.kcal}</span></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="cook-btn ${done?'done':''}" onclick="toggleCooked('${day}','${slot}')">${done?'✓ Uvařeno':'Uvařit'}</button>
+        <button class="swap" onclick="openSwap('${day}','${slot}')" title="Prohodit">🔀</button>
+        <button class="cook-btn" onclick="toggleEatOut('${day}','${slot}')" title="Jíme venku">🍽️</button>
+      </div>
+    </div>
+    <div style="margin-top:8px">${starsHTML(r.id,'sm')}</div>
+  </div>`;
+}
+function toggleCooked(day,slot){const c=LS.cooked,k=day+"_"+slot;c[k]=!c[k];LS.cooked=c;if(c[k])toast("✓ Označeno jako uvařeno");renderTyden()}
+function confirmRegen(){confirm2("Vygenerovat nový týden? Aktuální plán se smaže.",()=>{genMenu();render();toast("✨ Nový týden vygenerován")},"Vygenerovat")}
+function setStart(i){LS.start=+i;LS.confirmed=null;ensureMenu();render()}
+
+function confirmMenu(){
+  const m=ensureMenu(),dd=days();
+  const lines=dd.map(d=>{const o=byId(m[d].obed),v=byId(m[d].vecere);const ob=isEatOut(d,"obed")?"🍽️ venku":o.name;const ve=isEatOut(d,"vecere")?"🍽️ venku":v.name;return`${dayFull(d)}: oběd – ${ob} | večeře – ${ve}`});
+  const wk=(PLAN.version||"").split(".")[0],at=new Date().toLocaleString("cs-CZ");
+  const txt=`✅ POTVRZENÝ JÍDELNÍČEK ${wk} (${dd[0]}–${dd[dd.length-1]})\n`+lines.join("\n")+`\n\nProsím doplň chybějící suroviny do nákupního seznamu.`;
+  LS.confirmed={version:PLAN.version,at,start:LS.start,menu:m};
+  render();
+  openModal(`<div class="handle"></div><h2>✅ Jídelníček potvrzen</h2>
+    <div class="muted" style="margin:6px 0 10px">Pošli nákupní seznam do telefonu (Keep, Zprávy…) nebo zkopíruj text Claudovi.</div>
+    <button class="btn block" onclick="shareShopping(event)">📤 Sdílet nákupní seznam</button>
+    <div class="sectlabel" style="margin-top:16px">Text pro Claude</div>
+    <textarea class="in" id="confTxt" style="min-height:140px" readonly>${txt.replace(/</g,"&lt;")}</textarea>
+    <button class="btn ghost block" style="margin-top:10px" onclick="copyConf(event)">📋 Zkopírovat pro Claude</button>
+    <div class="note" style="margin-top:10px">„Sdílet" funguje na mobilu (a v prohlížeči přes HTTPS). Další úpravy jídelníčku vrátí stav na „návrh".</div>`);
+}
+function copyConf(ev){
+  const t=document.getElementById("confTxt");t.focus();t.select();t.setSelectionRange(0,99999);
+  let ok=false;
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(t.value).catch(()=>{});ok=true}
+  else{try{ok=document.execCommand("copy")}catch(e){}}
+  if(ev?.target)ev.target.textContent=ok?"✅ Zkopírováno – vlož do chatu":"Označ text ručně";
+}
+
+// ═══════════════════════════════════════════
+// SWAP DIALOG
+// ═══════════════════════════════════════════
+let _swapDay,_swapSlot,_swapLunch,_swapQuery="",_swapCat="all";
+function openSwap(day,slot){
+  _swapDay=day;_swapSlot=slot;_swapLunch=slot==="obed";_swapQuery="";_swapCat="all";
+  renderSwap(true);
+  sheet.dataset.swapActive="1";sheet.dataset.swapDay=day;sheet.dataset.swapSlot=slot;
+}
+function renderSwap(full){
+  let pool=getAll().filter(r=>r.meals.includes(_swapLunch?"obed":"vecere"));
+  if(_swapCat!=="all")pool=pool.filter(r=>_swapCat==="carbload"?r.cl:r.cat===_swapCat);
+  if(_swapQuery){const q=_swapQuery.toLowerCase();pool=pool.filter(r=>r.name.toLowerCase().includes(q))}
+  pool=pool.slice().sort((a,b)=>weight(b.id)-weight(a.id));
+  const list=pool.map(r=>`<div class="pick" data-swap-id="${r.id}">
+    <div><div style="font-weight:600">${r.name}</div>
+      <div class="row" style="gap:6px;margin-top:4px">${catTag(r.cat)} ${flags(r)} <span class="muted">${r.time} min · 🔥 ${r.kcal} · B ${r.p}g</span></div></div>
+    ${starsHTML(r.id,'sm')}</div>`).join("")||'<div class="empty">Nic nenalezeno</div>';
+  if(!full){document.getElementById("swapList").innerHTML=list;return}
+  let cats=`<div class="filters" id="swapFilters">
+    <div class="chip ${_swapCat==='all'?'on':''}" data-sc="all">Vše</div>
+    <div class="chip ${_swapCat==='carbload'?'on':''}" data-sc="carbload">🍚 Carb</div>`;
+  for(const c of["veg","kure","vepr","hovez","ryba","sweet"])cats+=`<div class="chip ${_swapCat===c?'on':''}" data-sc="${c}">${CAT[c].e}</div>`;
+  cats+=`</div>`;
+  openModal(`<div class="handle"></div><h3>Vyber ${_swapLunch?'oběd':'večeři'} — ${dayFull(_swapDay)}</h3>
+    <input class="in" id="swapSearch" style="margin:10px 0 4px" placeholder="🔎 Hledat…" value="${_swapQuery.replace(/"/g,'&quot;')}">
+    ${cats}<div id="swapList">${list}</div>`);
+  document.getElementById("swapSearch").addEventListener("input",e=>{_swapQuery=e.target.value;renderSwap(false)});
+  document.getElementById("swapFilters").addEventListener("click",e=>{const c=e.target.closest("[data-sc]");if(c){_swapCat=c.dataset.sc;renderSwap(true)}});
+}
+function doSwap(day,slot,id){const m=LS.menu;m[day][slot]=id;LS.menu=m;LS.confirmed=null;recordHistory(m);closeModal();render()}
+
+// ═══════════════════════════════════════════
+// RECIPE LIBRARY
+// ═══════════════════════════════════════════
+const SIDES=[
+  {k:"spagety",l:"🍝 Těstoviny",m:["špagety","těstoviny","nudle","tagliatelle","lasagne"]},
+  {k:"ryze",l:"🍚 Rýže",m:["rýže"]},
+  {k:"brambory",l:"🥔 Brambory/gnocchi",m:["brambor","gnocchi","hranolky","batát"]},
+  {k:"pecivo",l:"🥖 Pečivo/placky",m:["pečivo","chléb","toust","pita","naan","tortilla","bulka","bageta","knedlík"]}
+];
+function matchSide(r,k){const sd=SIDES.find(s=>s.k===k);return sd?r.ing.some(a=>sd.m.some(x=>a[0].toLowerCase().includes(x))):true}
+
+function renderRecepty(){
+  subtitle.textContent="Knihovna – hledej, filtruj, hodnoť";
+  const all=getAll(),counts={},hidden=LS.removed.length;
+  for(const r of all)counts[r.cat]=(counts[r.cat]||0)+1;
+  let h=`<button class="btn block" onclick="openForm()">➕ Přidat recept</button>`;
+  if(hidden)h+=`<button class="btn ghost block sm" style="margin-top:8px" onclick="restoreHidden()">♻️ Obnovit skryté recepty (${hidden})</button>`;
+  h+=`<input class="in" id="recSearch" style="margin:10px 0 6px" placeholder="🔎 Hledat recept nebo surovinu…" value="${query.replace(/"/g,'&quot;')}" oninput="setQuery(this.value)">
+    <div class="filters">
+      <div class="chip ${filter==='all'?'on':''}" onclick="setFilter('all')">Vše (${all.length})</div>
+      <div class="chip ${filter==='carbload'?'on':''}" onclick="setFilter('carbload')">🍚 Carb</div>`;
+  for(const c of["veg","kure","vepr","hovez","ryba","sweet"])h+=`<div class="chip ${filter===c?'on':''}" onclick="setFilter('${c}')">${CAT[c].e} ${CAT[c].l}${counts[c]?' <span style="opacity:.6;font-size:10px">('+counts[c]+')</span>':''}</div>`;
+  h+=`</div><div class="filters"><div class="chip ${fSide==='all'?'on':''}" onclick="setSide('all')">🍽️ Příloha: vše</div>`;
+  for(const sd of SIDES)h+=`<div class="chip ${fSide===sd.k?'on':''}" onclick="setSide('${sd.k}')">${sd.l}</div>`;
+  h+=`</div><div id="recList"></div>`;
+  view.innerHTML=h;
+  renderRecList();
+}
+function renderRecList(){
+  let list=getAll().filter(r=>{
+    if(filter!=="all"){if(filter==="carbload"){if(!r.cl)return false}else if(r.cat!==filter)return false}
+    if(fSide!=="all"&&!matchSide(r,fSide))return false;
+    if(query){const q=query.toLowerCase();if(!r.name.toLowerCase().includes(q)&&!r.ing.some(a=>a[0].toLowerCase().includes(q)))return false}
+    return true;
+  });
+  list=list.slice().sort((a,b)=>rating(b.id)-rating(a.id)||a.name.localeCompare(b.name,'cs'));
+  let h="";
+  if(!list.length)h=`<div class="empty">Nic nenalezeno 🤷</div>`;
+  for(const r of list){
+    h+=`<div class="card"><div class="row spread">
+      <div onclick="openRecipe('${r.id}')" style="flex:1;cursor:pointer"><div style="font-weight:600">${r.name} ${r.custom?'<span class="badge-custom">vlastní</span>':''}</div>
+        <div class="row" style="gap:6px;margin-top:6px">${catTag(r.cat)} ${flags(r)}<span class="muted">${r.time} min · ${r.porce} porce</span></div>
+        ${macroRow(r)}</div></div>
+      <div style="margin-top:10px">${starsHTML(r.id)}</div></div>`;
+  }
+  const el=document.getElementById("recList");if(el)el.innerHTML=h;
+}
+function setFilter(f){filter=f;renderRecepty()}
+function setSide(k){fSide=k;renderRecepty()}
+function setQuery(v){query=v;renderRecList()}
+
+function openRecipe(id,portionsArg){
+  const r=byId(id);if(!r)return;
+  const base=r.porce||2,p=portionsArg||base,sc=p/base;
+  let ingHtml="";
+  for(const a of r.ing)ingHtml+=`<li><span>${a[0]}</span><span class="muted">${scaleAmt(a[1],sc)||''}</span></li>`;
+  let h=`<div class="handle"></div>
+    <h2>${r.name} ${r.custom?'<span class="badge-custom">vlastní</span>':''}</h2>
+    <div class="row" style="gap:6px;margin:8px 0">${catTag(r.cat)} ${flags(r)}<span class="muted">${r.time} min</span></div>
+    <div style="margin:10px 0;display:flex;align-items:center;gap:12px">
+      <div class="scaler">
+        <button onclick="openRecipe('${id}',${Math.max(1,p-1)})">−</button>
+        <span>${p} porce</span>
+        <button onclick="openRecipe('${id}',${p+1})">+</button>
+      </div>
+      <span class="muted" style="font-size:12px">${sc!==1?`(×${Math.round(sc*10)/10} základ)`:''}</span>
+    </div>
+    ${macroRow({kcal:Math.round(r.kcal*sc),p:Math.round(r.p*sc),c:Math.round(r.c*sc),f:Math.round(r.f*sc)})}
+    ${macroBars(r.p,r.c,r.f)}
+    <div class="muted" style="font-size:11px;margin-top:4px">Makra přibližná, na ${p} porce celkem</div>
+    <div style="margin:12px 0">${starsHTML(r.id)}</div>
+    <div class="sectlabel">Suroviny</div><ul class="ing">${ingHtml}</ul>
+    <div class="sectlabel">Postup</div><ol class="steps">${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+    <div style="display:grid;grid-template-columns:${r.custom?'1fr 1fr':'1fr'};gap:8px;margin-top:14px">
+      ${r.custom?`<button class="btn ghost block" onclick="openForm('${r.id}')">✏️ Upravit</button>`:''}
+      <button class="btn danger block" onclick="_delConfirm('${r.id}')">🗑️ Odebrat recept</button>
+    </div>
+    ${!r.custom?`<div class="note" style="margin-top:6px">Vestavěný recept se jen skryje – „Obnovit skryté" v záložce Recepty ho vrátí.</div>`:''}`;
+  openModal(h);
+}
+function _delConfirm(id){
+  const r=byId(id),custom=r&&r.custom;
+  confirm2(custom?"Smazat vlastní recept?":"Skrýt recept z výběru?",()=>{
+    if(LS.custom.some(x=>x.id===id))LS.custom=LS.custom.filter(x=>x.id!==id);
+    else{const rm=new Set(LS.removed);rm.add(id);LS.removed=[...rm]}
+    render();toast(custom?"Recept smazán":"Recept skryt");
+  },custom?"Smazat":"Skrýt",true);
+}
+function restoreHidden(){LS.removed=[];render();toast("Skryté recepty obnoveny")}
+
+// ═══════════════════════════════════════════
+// RECIPE FORM (add / edit)
+// ═══════════════════════════════════════════
+function openForm(editId){
+  const ex=editId?byId(editId):null;
+  const opts=Object.keys(CAT).map(k=>`<option value="${k}" ${ex?.cat===k?'selected':''}>${CAT[k].e} ${CAT[k].l}</option>`).join("");
+  const mealV=ex?(ex.meals.includes("obed")&&ex.meals.includes("vecere")?"oba":ex.meals[0]||"vecere"):"oba";
+  const ingStr=ex?ex.ing.map(a=>`${a[0]}${a[1]?' | '+a[1]:''}`).join("\n"):"";
+  const stepsStr=ex?ex.steps.join("\n"):"";
+  openModal(`<div class="handle"></div><h2>${ex?'✏️ Upravit recept':'➕ Nový recept'}</h2>
+    <label class="fld">Název</label><input class="in" id="f_name" value="${(ex?.name||"").replace(/"/g,'&quot;')}" placeholder="např. Kuřecí wrap">
+    <div class="two">
+      <div><label class="fld">Kategorie</label><select class="in" id="f_cat">${opts}</select></div>
+      <div><label class="fld">Vhodné jako</label><select class="in" id="f_meal">
+        <option value="oba" ${mealV==="oba"?"selected":""}>Oběd i večeře</option>
+        <option value="obed" ${mealV==="obed"?"selected":""}>Jen oběd</option>
+        <option value="vecere" ${mealV==="vecere"?"selected":""}>Jen večeře</option>
+      </select></div>
+    </div>
+    <div class="two">
+      <div><label class="fld">Doba (min)</label><input class="in" id="f_time" type="number" inputmode="numeric" value="${ex?.time||25}"></div>
+      <div><label class="fld">Porce</label><input class="in" id="f_porce" type="number" inputmode="numeric" value="${ex?.porce||2}"></div>
+    </div>
+    <label class="fld">Makra na 1 porci</label>
+    <div class="four">
+      <input class="in" id="f_kcal" type="number" inputmode="numeric" placeholder="kcal" value="${ex?.kcal||''}">
+      <input class="in" id="f_p" type="number" inputmode="numeric" placeholder="B g" value="${ex?.p||''}">
+      <input class="in" id="f_c" type="number" inputmode="numeric" placeholder="S g" value="${ex?.c||''}">
+      <input class="in" id="f_f" type="number" inputmode="numeric" placeholder="T g" value="${ex?.f||''}">
+    </div>
+    <label class="fld">Suroviny (1 na řádek, volitelně název | množství)</label>
+    <textarea class="in" id="f_ing" placeholder="Kuřecí prsa | 300 g&#10;Tortilla | 2 ks">${ingStr}</textarea>
+    <button class="btn ghost block" style="margin-top:8px" onclick="calcMacros()">🔄 Odhadnout makra ze surovin</button>
+    <label class="fld">Postup (1 krok na řádek)</label>
+    <textarea class="in" id="f_steps" placeholder="Orestuj kuře.&#10;Naplň tortillu.">${stepsStr}</textarea>
+    <button class="btn block" style="margin-top:16px" onclick="saveCustom('${editId||''}')">${ex?'💾 Uložit změny':'💾 Uložit recept'}</button>
+    <div class="note">Necháš-li makra prázdná, odhadnu je ze surovin.</div>`);
+}
+function _v(id){return(document.getElementById(id)?.value||"").trim()}
+function _n(id){return Math.max(0,Math.round(+_v(id)||0))}
+function calcMacros(){
+  const ing=parseIngText("f_ing");
+  if(!ing.length){toast("Nejdřív zadej suroviny.");return}
+  const e=estimate(ing,_n("f_porce")||2);
+  document.getElementById("f_kcal").value=e.kcal;document.getElementById("f_p").value=e.p;
+  document.getElementById("f_c").value=e.c;document.getElementById("f_f").value=e.f;
+  toast("Makra odhadnuta ze surovin");
+}
+function saveCustom(editId){
+  const name=_v("f_name");
+  if(!name){toast("Zadej název receptu.");return}
+  const mealSel=_v("f_meal"),meals=mealSel==="oba"?["obed","vecere"]:[mealSel];
+  const time=_n("f_time")||25,porce=_n("f_porce")||2;
+  const ing=parseIngText("f_ing");
+  const steps=_v("f_steps").split("\n").map(l=>l.trim()).filter(Boolean);
+  let kcal=_n("f_kcal"),p=_n("f_p"),c=_n("f_c"),f=_n("f_f");
+  if(!kcal&&!p&&!c&&!f){const e=estimate(ing,porce);kcal=e.kcal;p=e.p;c=e.c;f=e.f}
+  const rec={id:editId||"c"+Date.now(),name,cat:_v("f_cat")||"veg",time,porce,meals,quick:time<=25,kcal,p,c,f,ing,steps,custom:true};
+  let cu=LS.custom;
+  cu=editId?cu.map(r=>r.id===editId?rec:r):[...cu,rec];
+  LS.custom=cu;closeModal();tab="recepty";render();
+  toast(editId?"Recept upraven":"Recept přidán");
+}
+
+// ═══════════════════════════════════════════
+// SHOPPING VIEW
+// ═══════════════════════════════════════════
+function renderNakup(){
+  subtitle.textContent="Nákupní seznam z týdne";
+  const m=ensureMenu(),need={};
+  for(const d of days())for(const slot of["obed","vecere"]){
+    if(isEatOut(d,slot))continue;
+    const r=byId(m[d][slot]);
+    for(const a of r.ing){const n=a[0];if(!need[n])need[n]={amts:[],rec:new Set()};if(a[1])need[n].amts.push(a[1]);need[n].rec.add(r.name)}
+  }
+  const pantry=new Set(LS.pantry),bought=new Set(LS.bought),manual=LS.manualItems;
+  const buy=[],spice=[];
+  for(const n of Object.keys(need)){if(pantry.has(n))continue;(SPICES.has(n)?spice:buy).push(n)}
+  const grouped={};for(const cat of SHOP_CATS)grouped[cat.id]=[];
+  for(const n of buy)grouped[shopCatId(n)].push(n);
+
+  let h=`<div class="note">Suroviny sečteny z týdne minus spíž. ✓ = koupeno.</div>
+  <button class="btn block" onclick="shareShopping(event)">📤 Sdílet nákupní seznam</button>
+  <div class="add-manual"><input class="in" id="manualInput" placeholder="Přidat položku ručně…"><button class="btn sm" onclick="addManual()">＋</button></div>`;
+  if(manual.length){
+    h+=`<div class="shop-cat">📝 Ruční položky <span class="cnt">${manual.filter(n=>!bought.has("_m_"+n)).length}</span></div>`;
+    for(const n of manual)h+=manualCheckRow(n,bought.has("_m_"+n));
+  }
+  let anyBuy=false;
+  for(const cat of SHOP_CATS){
+    const items=grouped[cat.id];if(!items?.length)continue;anyBuy=true;
+    h+=`<div class="shop-cat">${cat.l} <span class="cnt">${items.filter(n=>!bought.has(n)).length}</span></div>`;
+    for(const n of items)h+=checkRow(n,need[n],bought.has(n));
+  }
+  if(!anyBuy&&!manual.length)h+=`<div class="empty">Nic nechybí 🎉</div>`;
+  if(spice.length){
+    h+=`<div class="shop-cat">🧂 Koření – zkontroluj <span class="cnt">${spice.filter(n=>!bought.has(n)).length}</span></div>`;
+    for(const n of spice)h+=checkRow(n,need[n],bought.has(n));
+  }
+  const anyBought=[...bought].some(k=>k.startsWith("_m_")?manual.includes(k.slice(3)):need[k]);
+  if(anyBought)h+=`<div style="margin-top:12px"><button class="btn ghost sm" onclick="clearBought()">🗑️ Smazat odškrtnuté</button></div>`;
+  view.innerHTML=h;
+  document.getElementById("manualInput")?.addEventListener("keydown",e=>{if(e.key==="Enter")addManual()});
+}
+function checkRow(n,info,done){
+  const merged=mergeAmounts(info.amts),recips=[...info.rec].slice(0,2).join(", "),safe=n.replace(/'/g,"\\'");
+  return`<div class="check ${done?'done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleBought('${safe}')">
+    <label style="flex:1"><div class="cname">${n}${merged?` <span class="muted" style="font-size:12px">— ${merged}</span>`:''}</div>
+    <div class="muted" style="font-size:11px">${recips}</div></label></div>`;
+}
+function manualCheckRow(n,done){
+  const safe=n.replace(/'/g,"\\'");
+  return`<div class="check ${done?'done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleBought('_m_${safe}')">
+    <label style="flex:1;display:flex;align-items:center;justify-content:space-between">
+      <span class="cname">${n}</span>
+      <button style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:16px;padding:0 4px" onclick="removeManual('${safe}')">×</button>
+    </label></div>`;
+}
+function toggleBought(n){let b=new Set(LS.bought);b.has(n)?b.delete(n):b.add(n);LS.bought=[...b];renderNakup()}
+function addManual(){const inp=document.getElementById("manualInput"),val=(inp?.value||"").trim();if(!val)return;const m=LS.manualItems;if(!m.includes(val)){m.push(val);LS.manualItems=m}if(inp)inp.value="";renderNakup()}
+function removeManual(n){LS.manualItems=LS.manualItems.filter(x=>x!==n);let b=new Set(LS.bought);b.delete("_m_"+n);LS.bought=[...b];renderNakup()}
+function clearBought(){let b=new Set(LS.bought);for(const k of[...b])if(!k.startsWith("_m_"))b.delete(k);LS.bought=[...b];renderNakup();toast("Odškrtnuté odstraněny")}
+
+// Sestaví textový nákupní seznam (stejná logika jako záložka Nákup)
+function buildShoppingText(){
+  const m=ensureMenu(),need={};
+  for(const d of days())for(const slot of["obed","vecere"]){
+    if(isEatOut(d,slot))continue;
+    const r=byId(m[d][slot]);
+    for(const a of r.ing){const n=a[0];if(!need[n])need[n]={amts:[]};if(a[1])need[n].amts.push(a[1])}
+  }
+  const pantry=new Set(LS.pantry),grouped={},spice=[];
+  for(const c of SHOP_CATS)grouped[c.id]=[];
+  for(const n of Object.keys(need)){if(pantry.has(n))continue;if(SPICES.has(n)){spice.push(n);continue}grouped[shopCatId(n)].push(n)}
+  const lines=["🛒 Nákupní seznam"];
+  for(const cat of SHOP_CATS){
+    const items=grouped[cat.id];if(!items.length)continue;
+    lines.push("",cat.l);
+    for(const n of items){const a=mergeAmounts(need[n].amts);lines.push("• "+n+(a?" – "+a:""))}
+  }
+  if(LS.manualItems.length){lines.push("","📝 Ruční položky");for(const n of LS.manualItems)lines.push("• "+n)}
+  if(spice.length){lines.push("","🧂 Koření – zkontroluj");for(const n of spice)lines.push("• "+n)}
+  return lines.join("\n");
+}
+async function shareShopping(ev){
+  const text=buildShoppingText();
+  if(navigator.share){
+    try{await navigator.share({title:"Nákupní seznam",text});toast("Sdíleno ✓")}
+    catch(e){/* uživatel zrušil */}
+  }else{
+    let ok=false;
+    if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(text);ok=true}catch(e){}}
+    toast(ok?"Sdílení nepodporováno – zkopírováno do schránky":"Sdílení ani schránka nejsou dostupné");
+  }
+}
+
+// ═══════════════════════════════════════════
+// PANTRY VIEW
+// ═══════════════════════════════════════════
+function renderSpiz(){
+  subtitle.textContent="Co máš doma (vyloučí se z nákupu)";
+  const all=[...new Set(getAll().flatMap(r=>r.ing.map(i=>i[0])))].filter(n=>!SPICES.has(n)).sort((a,b)=>a.localeCompare(b,'cs'));
+  const pantry=new Set(LS.pantry);
+  const grouped={};for(const cat of SHOP_CATS)grouped[cat.id]=[];
+  for(const n of all)grouped[shopCatId(n)].push(n);
+  const total=all.filter(n=>pantry.has(n)).length;
+  let h=`<div class="note">Zaškrtni suroviny, které máš doma – odečtou se z nákupu. Doma: ${total}/${all.length}</div>`;
+  for(const cat of SHOP_CATS){
+    const items=grouped[cat.id];if(!items?.length)continue;
+    h+=`<div class="shop-cat">${cat.l} <span class="cnt">${items.filter(n=>pantry.has(n)).length}/${items.length}</span></div>`;
+    for(const n of items){const safe=n.replace(/'/g,"\\'");h+=`<div class="check ${pantry.has(n)?'done':''}"><input type="checkbox" ${pantry.has(n)?'checked':''} onchange="togglePantry('${safe}')"><label style="flex:1" class="cname">${n}</label></div>`}
+  }
+  view.innerHTML=h;
+}
+function togglePantry(n){let p=new Set(LS.pantry);p.has(n)?p.delete(n):p.add(n);LS.pantry=[...p];renderSpiz()}
+
+// ═══════════════════════════════════════════
+// SETTINGS / EXPORT / IMPORT
+// ═══════════════════════════════════════════
+function openSettings(){
+  openModal(`<div class="handle"></div><h2>⚙️ Nastavení & záloha</h2>
+    <div class="sectlabel">Záloha dat</div>
+    <div style="display:grid;gap:8px;margin-top:4px">
+      <button class="btn ghost block" onclick="exportData()">📤 Exportovat data (JSON)</button>
+      <label class="btn ghost block" style="display:block;text-align:center;cursor:pointer">📥 Importovat data (JSON)
+        <input type="file" accept=".json" style="display:none" onchange="importData(this)"></label>
+    </div>
+    <div class="sectlabel" style="margin-top:16px">Nebezpečná zóna</div>
+    <button class="btn danger block" style="margin-top:4px" onclick="confirmClearData()">🗑️ Smazat všechna data</button>
+    <div class="note" style="margin-top:8px">Export uloží recepty, hodnocení, nákup, spíž a historii.</div>`);
+}
+function exportData(){
+  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=`jidelnik-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
+  URL.revokeObjectURL(url);toast("Data exportována");
+}
+function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.ratings)LS.ratings=d.ratings;if(d.menu)LS.menu=d.menu;if(d.pantry)LS.pantry=d.pantry;
+      if(d.bought)LS.bought=d.bought;if(d.custom)LS.custom=d.custom;if(d.history)LS.history=d.history;
+      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;
+      closeModal();render();toast("Data importována ✓");
+    }catch(err){toast("Chyba při importu – zkontroluj soubor.")}
+  };
+  reader.readAsText(file);
+}
+function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
+
+// ═══════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════
+const modal=document.getElementById("modal"),sheet=document.getElementById("sheet");
+function openModal(html){sheet.innerHTML=html;modal.classList.add("open")}
+function closeModal(){modal.classList.remove("open");sheet.dataset.swapActive=""}
+
+// ═══════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════
+document.addEventListener("click",e=>{
+  const star=e.target.closest(".stars .s");
+  if(star){const wrap=star.closest(".stars");setRating(wrap.dataset.rate,+star.dataset.v);if(tab==="recepty")renderRecList();else render();e.stopPropagation();return}
+  if(sheet.dataset.swapActive==="1"){const pick=e.target.closest("[data-swap-id]");if(pick){doSwap(sheet.dataset.swapDay,sheet.dataset.swapSlot,pick.dataset.swapId);return}}
+  if(e.target===modal)closeModal();
+});
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{tab=b.dataset.tab;filter="all";fSide="all";query="";window.scrollTo(0,0);render()}));
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+applyPlan();
+render();
+</script>
+</body>
+</html>
