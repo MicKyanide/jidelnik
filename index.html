@@ -436,6 +436,7 @@ const LS={
   get cooked(){return this._g("jid_cooked",{})},     set cooked(v){this._s("jid_cooked",v)},
   get manualItems(){return this._g("jid_manual",[])},set manualItems(v){this._s("jid_manual",v)},
   get eatOut(){return this._g("jid_eatout",[])},     set eatOut(v){this._s("jid_eatout",v)},
+  get mealsOverride(){return this._g("jid_meals",{})},set mealsOverride(v){this._s("jid_meals",v)},
 };
 // "jíme venku" se eviduje pro konkrétní jídlo (den_slot), ne pro celý den
 function isEatOut(day,slot){return LS.eatOut.includes(day+"_"+slot)}
@@ -444,7 +445,9 @@ function toggleEatOut(day,slot){const k=day+"_"+slot;let e=new Set(LS.eatOut);e.
 // ═══════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════
-function getAll(){const rm=new Set(LS.removed);return R.concat(LS.custom).filter(r=>!rm.has(r.id))}
+function getAll(){const rm=new Set(LS.removed),ov=LS.mealsOverride;return R.concat(LS.custom).filter(r=>!rm.has(r.id)).map(r=>ov[r.id]?{...r,meals:ov[r.id]}:r)}
+// Vrátí typ přílohy receptu (těstoviny/rýže/brambory/pečivo) nebo null
+function mealSide(r){for(const sd of SIDES){if(r.ing.some(a=>sd.m.some(x=>a[0].toLowerCase().includes(x))))return sd.k}return null}
 function byId(id){return getAll().find(r=>r.id===id)}
 function rating(id){const r=LS.ratings;return (id in r)?r[id]:(DEFAULT_RATINGS[id]||0)}
 function setRating(id,v){const r=LS.ratings;if(r[id]===v)v=0;r[id]=v;LS.ratings=r}
@@ -569,6 +572,13 @@ function currentWeek(){
 function weekNum(w){const[y,n]=w.split("-W");return+y*100+ +n}
 function isRecentlyUsed(id){const rw=LS.history[id]?weekNum(LS.history[id]):0;return weekNum(currentWeek())-rw<2}
 
+// Z dinner poolu vyřadí jídla se stejnou přílohou jako oběd (když po vyřazení něco zbyde)
+function dinnerPool(dinner,lunch){
+  const ls=mealSide(lunch);
+  if(!ls)return dinner;
+  const f=dinner.filter(r=>mealSide(r)!==ls);
+  return f.length?f:dinner;
+}
 function pickWeighted(pool,used){
   const fresh=pool.filter(r=>!used.has(r.id)&&!isRecentlyUsed(r.id));
   const cand=fresh.length?fresh:pool.filter(r=>!used.has(r.id));
@@ -581,7 +591,11 @@ function recordHistory(m){const cw=currentWeek(),h=LS.history;for(const d in m){
 function genMenu(){
   const all=getAll(),lunch=all.filter(r=>r.meals.includes("obed")),dinner=all.filter(r=>r.meals.includes("vecere")&&r.time<=35);
   const used=new Set(),m={};
-  for(const d of days()){const o=pickWeighted(lunch,used);used.add(o.id);const v=pickWeighted(dinner,used);used.add(v.id);m[d]={obed:o.id,vecere:v.id}}
+  for(const d of days()){
+    const o=pickWeighted(lunch,used);used.add(o.id);
+    const v=pickWeighted(dinnerPool(dinner,o),used);used.add(v.id);
+    m[d]={obed:o.id,vecere:v.id};
+  }
   recordHistory(m);LS.menu=m;LS.bought=[];LS.confirmed=null;LS.cooked={};return m;
 }
 function ensureMenu(){
@@ -591,7 +605,7 @@ function ensureMenu(){
   const all=getAll(),lunch=all.filter(r=>r.meals.includes("obed")),dinner=all.filter(r=>r.meals.includes("vecere")&&r.time<=35);
   for(const d of days()){
     if(!m[d]||!byId(m[d].obed)){const o=pickWeighted(lunch,used);used.add(o.id);m[d]={...(m[d]||{}),obed:o.id};changed=true}
-    if(!m[d]||!byId(m[d].vecere)){const v=pickWeighted(dinner,used);used.add(v.id);m[d]={...(m[d]||{}),vecere:v.id};changed=true}
+    if(!m[d]||!byId(m[d].vecere)){const lunchR=byId(m[d].obed);const v=pickWeighted(lunchR?dinnerPool(dinner,lunchR):dinner,used);used.add(v.id);m[d]={...(m[d]||{}),vecere:v.id};changed=true}
   }
   if(changed){LS.menu=m;recordHistory(m)}
   return m;
@@ -834,6 +848,13 @@ function openRecipe(id,portionsArg){
     ${macroBars(r.p,r.c,r.f)}
     <div class="muted" style="font-size:11px;margin-top:4px">Makra přibližná, na ${p} porce celkem</div>
     <div style="margin:12px 0">${starsHTML(r.id)}</div>
+    <div class="sectlabel">Zařadit do jídelníčku jako</div>
+    <div class="filters" style="padding-bottom:4px">
+      ${[["oba","🍲⚡ Oběd i večeře"],["obed","🍲 Jen oběd"],["vecere","⚡ Jen večeře"]].map(([m,l])=>{
+        const cur=r.meals.includes("obed")&&r.meals.includes("vecere")?"oba":(r.meals[0]||"");
+        return `<div class="chip ${cur===m?'on':''}" onclick="setMeals('${r.id}','${m}')">${l}</div>`;
+      }).join("")}
+    </div>
     <div class="sectlabel">Suroviny</div><ul class="ing">${ingHtml}</ul>
     <div class="sectlabel">Postup</div><ol class="steps">${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
     <div style="display:grid;grid-template-columns:${r.custom?'1fr 1fr':'1fr'};gap:8px;margin-top:14px">
@@ -852,6 +873,13 @@ function _delConfirm(id){
   },custom?"Smazat":"Skrýt",true);
 }
 function restoreHidden(){LS.removed=[];render();toast("Skryté recepty obnoveny")}
+// Přepíše zařazení receptu (oběd/večeře/obojí); projeví se při dalším generování
+function setMeals(id,mode){
+  const meals=mode==="oba"?["obed","vecere"]:[mode];
+  const ov=LS.mealsOverride;ov[id]=meals;LS.mealsOverride=ov;
+  openRecipe(id);
+  toast(mode==="oba"?"Zařazeno: oběd i večeře":mode==="obed"?"Zařazeno: jen oběd":"Zařazeno: jen večeře");
+}
 
 // ═══════════════════════════════════════════
 // RECIPE FORM (add / edit)
@@ -1045,7 +1073,7 @@ function openSettings(){
     <div class="note" style="margin-top:8px">Export uloží recepty, hodnocení, nákup, spíž a historii.</div>`);
 }
 function exportData(){
-  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,exportedAt:new Date().toISOString()};
+  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,mealsOverride:LS.mealsOverride,exportedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`jidelnik-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
   URL.revokeObjectURL(url);toast("Data exportována");
@@ -1058,13 +1086,13 @@ function importData(input){
       const d=JSON.parse(e.target.result);
       if(d.ratings)LS.ratings=d.ratings;if(d.menu)LS.menu=d.menu;if(d.pantry)LS.pantry=d.pantry;
       if(d.bought)LS.bought=d.bought;if(d.custom)LS.custom=d.custom;if(d.history)LS.history=d.history;
-      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;
+      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;if(d.mealsOverride)LS.mealsOverride=d.mealsOverride;
       closeModal();render();toast("Data importována ✓");
     }catch(err){toast("Chyba při importu – zkontroluj soubor.")}
   };
   reader.readAsText(file);
 }
-function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
+function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_meals","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
 
 // ═══════════════════════════════════════════
 // MODAL
