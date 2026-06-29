@@ -100,6 +100,7 @@ ol.steps li{padding:4px 0;line-height:1.5}
 .empty{color:var(--mut);text-align:center;padding:30px 10px}
 .pill-q{font-size:10px;background:rgba(56,189,248,.15);color:var(--ryba);padding:2px 6px;border-radius:6px;font-weight:700}
 .pill-cl{font-size:10px;background:rgba(96,165,250,.18);color:var(--carb);padding:2px 6px;border-radius:6px;font-weight:700}
+.pill-prep{font-size:10px;background:rgba(251,191,36,.18);color:var(--star);padding:2px 6px;border-radius:6px;font-weight:700}
 .note{background:var(--card2);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin:8px 0}
 a{color:var(--acc)}
 label.fld{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut);font-weight:600}
@@ -367,7 +368,10 @@ const R=[
   steps:["Slaninu osmahni dokřupava.","Bagety rozkroj, potři máslem.","Naplň plátky hermelínu, slaninou a brusinkami.","Zapeč v troubě ~10 min."]},
  {id:"rolada",name:"Roláda z listového těsta",cat:"vepr",time:35,porce:2,meals:["vecere"],quick:false,kcal:620,p:24,c:48,f:38,
   ing:[["Listové těsto","1 balení"],["Šunka","120 g"],["Sýr strouhaný","120 g"],["Vejce","1 ks"],["Hořčice","1 lžíce"],["Sezam","na posyp"]],
-  steps:["Listové těsto rozviň, potři hořčicí.","Poklaď šunkou a sýrem, zaroluj.","Potři rozšlehaným vejcem, posyp sezamem.","Peč na 200 °C ~25 min dozlatova."]}
+  steps:["Listové těsto rozviň, potři hořčicí.","Poklaď šunkou a sýrem, zaroluj.","Potři rozšlehaným vejcem, posyp sezamem.","Peč na 200 °C ~25 min dozlatova."]},
+ {id:"rajska_maso",name:"Rajská omáčka s masem",cat:"hovez",time:60,porce:2,meals:["obed"],quick:false,cl:true,prep:true,kcal:620,p:34,c:62,f:24,
+  ing:[["Hovězí (kýta/kližka)","400 g"],["Rajský protlak","2 lžíce"],["Drcená rajčata","400 g"],["Cibule","1 ks"],["Hladká mouka","1 lžíce"],["Cukr",""],["Ocet",""],["Bobkový list",""],["Houskový knedlík","k podávání"],["Sůl",""]],
+  steps:["Na cibuli orestuj nakrájené hovězí, podlij vodou a dus doměkka s bobkovým listem.","Přidej rajský protlak a drcená rajčata, povař.","Zahusti jíškou z mouky, dochuť cukrem, octem a solí.","Podávej s houskovým knedlíkem.","Pozn.: doma většinou jako zavařený polotovar od známé – jen ohřát."]}
 ];
 
 // ═══════════════════════════════════════════
@@ -437,7 +441,11 @@ const LS={
   get manualItems(){return this._g("jid_manual",[])},set manualItems(v){this._s("jid_manual",v)},
   get eatOut(){return this._g("jid_eatout",[])},     set eatOut(v){this._s("jid_eatout",v)},
   get mealsOverride(){return this._g("jid_meals",{})},set mealsOverride(v){this._s("jid_meals",v)},
+  get prepOverride(){return this._g("jid_prep",{})},  set prepOverride(v){this._s("jid_prep",v)},
 };
+// Polotovar = hotové jídlo (např. zavařené od známé) – do nákupu se nepočítá
+function isPrep(r){const o=LS.prepOverride;return (r.id in o)?!!o[r.id]:!!r.prep}
+function setPrep(id,val){const o=LS.prepOverride;o[id]=!!val;LS.prepOverride=o;openRecipe(id);toast(val?"🥫 Označeno jako polotovar – mimo nákup":"Zpět běžný recept")}
 // "jíme venku" se eviduje pro konkrétní jídlo (den_slot), ne pro celý den
 function isEatOut(day,slot){return LS.eatOut.includes(day+"_"+slot)}
 function toggleEatOut(day,slot){const k=day+"_"+slot;let e=new Set(LS.eatOut);e.has(k)?e.delete(k):e.add(k);LS.eatOut=[...e];LS.confirmed=null;render();toast(e.has(k)?"🍽️ Jíme venku":"Vaříme doma")}
@@ -457,7 +465,7 @@ function dayFull(d){return{Po:"Pondělí",Út:"Úterý",St:"Středa",Čt:"Čtvrt
 function todayAbbr(){return["Ne","Po","Út","St","Čt","Pá","So"][new Date().getDay()]}
 
 function catTag(c){const k=CAT[c];return`<span class="tag t-${k.c}">${k.e} ${k.l}</span>`}
-function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}`}
+function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}${isPrep(r)?'<span class="pill-prep">🥫 polotovar</span>':''}`}
 function starsHTML(id,sz){const r=rating(id);let h=`<span class="stars ${sz||''}" data-rate="${id}">`;for(let i=1;i<=5;i++)h+=`<span class="s ${i<=r?'on':''}" data-v="${i}">★</span>`;return h+"</span>"}
 function macroRow(r){return`<div class="macros"><span class="mb m-kcal">🔥 ${r.kcal} kcal</span><span class="mb m-prot">B ${r.p} g</span><span class="mb m-carb">S ${r.c} g</span><span class="mb m-fat">T ${r.f} g</span></div>`}
 function macroBars(p,c,f){const pk=p*4,ck=c*4,fk=f*9,t=pk+ck+fk||1;return`<div class="bars"><i style="width:${pk/t*100}%;background:var(--prot)"></i><i style="width:${ck/t*100}%;background:var(--carb)"></i><i style="width:${fk/t*100}%;background:var(--fat)"></i></div>`}
@@ -855,6 +863,10 @@ function openRecipe(id,portionsArg){
         return `<div class="chip ${cur===m?'on':''}" onclick="setMeals('${r.id}','${m}')">${l}</div>`;
       }).join("")}
     </div>
+    <div class="filters" style="padding-bottom:4px">
+      <div class="chip ${isPrep(r)?'on':''}" onclick="setPrep('${r.id}',${isPrep(r)?'false':'true'})">🥫 Polotovar (mimo nákup)</div>
+    </div>
+    ${isPrep(r)?'<div class="note" style="margin-top:0">Hotové jídlo – suroviny se nepřidávají do nákupního seznamu.</div>':''}
     <div class="sectlabel">Suroviny</div><ul class="ing">${ingHtml}</ul>
     <div class="sectlabel">Postup</div><ol class="steps">${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
     <div style="display:grid;grid-template-columns:${r.custom?'1fr 1fr':'1fr'};gap:8px;margin-top:14px">
@@ -954,6 +966,7 @@ function renderNakup(){
   for(const d of days())for(const slot of["obed","vecere"]){
     if(isEatOut(d,slot))continue;
     const r=byId(m[d][slot]);
+    if(isPrep(r))continue;
     for(const a of r.ing){const n=a[0];if(!need[n])need[n]={amts:[],rec:new Set()};if(a[1])need[n].amts.push(a[1]);need[n].rec.add(r.name)}
   }
   const pantry=new Set(LS.pantry),bought=new Set(LS.bought),manual=LS.manualItems;
@@ -1010,6 +1023,7 @@ function buildShoppingText(){
   for(const d of days())for(const slot of["obed","vecere"]){
     if(isEatOut(d,slot))continue;
     const r=byId(m[d][slot]);
+    if(isPrep(r))continue;
     for(const a of r.ing){const n=a[0];if(!need[n])need[n]={amts:[]};if(a[1])need[n].amts.push(a[1])}
   }
   const pantry=new Set(LS.pantry),grouped={},spice=[];
@@ -1073,7 +1087,7 @@ function openSettings(){
     <div class="note" style="margin-top:8px">Export uloží recepty, hodnocení, nákup, spíž a historii.</div>`);
 }
 function exportData(){
-  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,mealsOverride:LS.mealsOverride,exportedAt:new Date().toISOString()};
+  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,mealsOverride:LS.mealsOverride,prepOverride:LS.prepOverride,exportedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`jidelnik-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
   URL.revokeObjectURL(url);toast("Data exportována");
@@ -1086,13 +1100,13 @@ function importData(input){
       const d=JSON.parse(e.target.result);
       if(d.ratings)LS.ratings=d.ratings;if(d.menu)LS.menu=d.menu;if(d.pantry)LS.pantry=d.pantry;
       if(d.bought)LS.bought=d.bought;if(d.custom)LS.custom=d.custom;if(d.history)LS.history=d.history;
-      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;if(d.mealsOverride)LS.mealsOverride=d.mealsOverride;
+      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;if(d.mealsOverride)LS.mealsOverride=d.mealsOverride;if(d.prepOverride)LS.prepOverride=d.prepOverride;
       closeModal();render();toast("Data importována ✓");
     }catch(err){toast("Chyba při importu – zkontroluj soubor.")}
   };
   reader.readAsText(file);
 }
-function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_meals","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
+function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_meals","jid_prep","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
 
 // ═══════════════════════════════════════════
 // MODAL
