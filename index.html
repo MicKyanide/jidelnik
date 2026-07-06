@@ -371,7 +371,10 @@ const R=[
   steps:["Listové těsto rozviň, potři hořčicí.","Poklaď šunkou a sýrem, zaroluj.","Potři rozšlehaným vejcem, posyp sezamem.","Peč na 200 °C ~25 min dozlatova."]},
  {id:"rajska_maso",name:"Rajská omáčka s masem",cat:"hovez",time:60,porce:2,meals:["obed"],quick:false,cl:true,prep:true,kcal:620,p:34,c:62,f:24,
   ing:[["Hovězí (kýta/kližka)","400 g"],["Rajský protlak","2 lžíce"],["Drcená rajčata","400 g"],["Cibule","1 ks"],["Hladká mouka","1 lžíce"],["Cukr",""],["Ocet",""],["Bobkový list",""],["Houskový knedlík","k podávání"],["Sůl",""]],
-  steps:["Na cibuli orestuj nakrájené hovězí, podlij vodou a dus doměkka s bobkovým listem.","Přidej rajský protlak a drcená rajčata, povař.","Zahusti jíškou z mouky, dochuť cukrem, octem a solí.","Podávej s houskovým knedlíkem.","Pozn.: doma většinou jako zavařený polotovar od známé – jen ohřát."]}
+  steps:["Na cibuli orestuj nakrájené hovězí, podlij vodou a dus doměkka s bobkovým listem.","Přidej rajský protlak a drcená rajčata, povař.","Zahusti jíškou z mouky, dochuť cukrem, octem a solí.","Podávej s houskovým knedlíkem.","Pozn.: doma většinou jako zavařený polotovar od známé – jen ohřát."]},
+ {id:"burty_pivo",name:"Buřty na pivu",cat:"vepr",time:35,porce:2,meals:["vecere"],quick:false,kcal:720,p:28,c:34,f:48,
+  ing:[["Buřty","8 ks"],["Černé pivo","500 ml"],["Rajčatový protlak","2 lžíce"],["Pasírovaná rajčata","400 g"],["Paprika","1 ks"],["Česnek","2 stroužky"],["Chleba","k podávání"]],
+  steps:["Buřty nakrájej na kolečka a zprudka orestuj.","Přidej nakrájenou papriku a česnek, krátce osmahni.","Vmíchej rajčatový protlak, zalij pasírovanými rajčaty a černým pivem.","Provař ~20 min do zhoustnutí omáčky. Podávej s chlebem."]}
 ];
 
 // ═══════════════════════════════════════════
@@ -409,17 +412,16 @@ const CANS=[[["tuňák"],80],[["cizrna"],240],[["fazole"],240],[["kukuřice"],14
 // ═══════════════════════════════════════════
 // PLAN (injektovaný z chatu)
 // ═══════════════════════════════════════════
-const PLAN={version:"2026-W26.3",start:"Po",
+const PLAN={version:"2026-W26.4",start:"Út",
  // jídla označená "jíme venku" (klíče den_slot) – přenese se i na telefon
  eatOut:[],
  menu:{
- "Po":{obed:"rajska_maso",vecere:"tunak"},
- "Út":{obed:"tagliatelle_spenat",vecere:"rolada"},
- "St":{obed:"masove_kulicky",vecere:"balkan_pomazanka"},
- "Čt":{obed:"gnocchi_spenat",vecere:"balkan_pomazanka"},
- "Pá":{obed:"gnocchi_spenat",vecere:"hermelin"},
- "So":{obed:"svickova",vecere:"burger"},
- "Ne":{obed:"svickova",vecere:"michana_vajicka"}
+ "Út":{obed:"smazeny_syr",vecere:"tousty"},
+ "St":{obed:"ryze_vepr_zampiony",vecere:"carbonara"},
+ "Čt":{obed:"ryze_vepr_zampiony",vecere:"pita_zapecena"},
+ "Pá":{obed:"butter",vecere:"livance"},
+ "So":{obed:"butter",vecere:"burty_pivo"},
+ "Ne":{obed:"lasagne",vecere:"bagetky_sunka"}
 }};
 
 // ═══════════════════════════════════════════
