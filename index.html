@@ -757,14 +757,14 @@ function copyConf(ev){
 // ═══════════════════════════════════════════
 // SWAP DIALOG
 // ═══════════════════════════════════════════
-let _swapDay,_swapSlot,_swapLunch,_swapQuery="",_swapCat="all";
+let _swapDay,_swapSlot,_swapLunch,_swapQuery="",_swapCat="all",_swapMeal="obed";
 function openSwap(day,slot){
-  _swapDay=day;_swapSlot=slot;_swapLunch=slot==="obed";_swapQuery="";_swapCat="all";
+  _swapDay=day;_swapSlot=slot;_swapLunch=slot==="obed";_swapQuery="";_swapCat="all";_swapMeal=slot;
   renderSwap(true);
   sheet.dataset.swapActive="1";sheet.dataset.swapDay=day;sheet.dataset.swapSlot=slot;
 }
 function renderSwap(full){
-  let pool=getAll().filter(r=>r.meals.includes(_swapLunch?"obed":"vecere"));
+  let pool=getAll().filter(r=>_swapMeal==="all"?(r.meals.includes("obed")||r.meals.includes("vecere")):r.meals.includes(_swapMeal));
   if(_swapCat!=="all")pool=pool.filter(r=>_swapCat==="carbload"?r.cl:r.cat===_swapCat);
   if(_swapQuery){const q=_swapQuery.toLowerCase();pool=pool.filter(r=>r.name.toLowerCase().includes(q))}
   pool=pool.slice().sort((a,b)=>weight(b.id)-weight(a.id));
@@ -778,10 +778,16 @@ function renderSwap(full){
     <div class="chip ${_swapCat==='carbload'?'on':''}" data-sc="carbload">🍚 Carb</div>`;
   for(const c of["veg","kure","vepr","hovez","ryba","sweet"])cats+=`<div class="chip ${_swapCat===c?'on':''}" data-sc="${c}">${CAT[c].e}</div>`;
   cats+=`</div>`;
-  openModal(`<div class="handle"></div><h3>Vyber ${_swapLunch?'oběd':'večeři'} — ${dayFull(_swapDay)}</h3>
+  const meals=`<div class="filters" id="swapMeals">
+    <div class="chip ${_swapMeal==='obed'?'on':''}" data-sm="obed">🍲 Oběd</div>
+    <div class="chip ${_swapMeal==='vecere'?'on':''}" data-sm="vecere">⚡ Večeře</div>
+    <div class="chip ${_swapMeal==='all'?'on':''}" data-sm="all">Vše</div>
+  </div>`;
+  openModal(`<div class="handle"></div><h3>Vyber jídlo — ${dayFull(_swapDay)}</h3>
     <input class="in" id="swapSearch" style="margin:10px 0 4px" placeholder="🔎 Hledat…" value="${_swapQuery.replace(/"/g,'&quot;')}">
-    ${cats}<div id="swapList">${list}</div>`);
+    ${meals}${cats}<div id="swapList">${list}</div>`);
   document.getElementById("swapSearch").addEventListener("input",e=>{_swapQuery=e.target.value;renderSwap(false)});
+  document.getElementById("swapMeals").addEventListener("click",e=>{const c=e.target.closest("[data-sm]");if(c){_swapMeal=c.dataset.sm;renderSwap(true)}});
   document.getElementById("swapFilters").addEventListener("click",e=>{const c=e.target.closest("[data-sc]");if(c){_swapCat=c.dataset.sc;renderSwap(true)}});
 }
 function doSwap(day,slot,id){const m=LS.menu;m[day][slot]=id;LS.menu=m;LS.confirmed=null;recordHistory(m);closeModal();render()}
