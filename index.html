@@ -412,16 +412,17 @@ const CANS=[[["tuňák"],80],[["cizrna"],240],[["fazole"],240],[["kukuřice"],14
 // ═══════════════════════════════════════════
 // PLAN (injektovaný z chatu)
 // ═══════════════════════════════════════════
-const PLAN={version:"2026-W26.4",start:"Út",
+const PLAN={version:"2026-W26.5",start:"Po",
  // jídla označená "jíme venku" (klíče den_slot) – přenese se i na telefon
- eatOut:[],
+ eatOut:["Pá_vecere","So_obed","Ne_obed","Ne_vecere"],
  menu:{
- "Út":{obed:"smazeny_syr",vecere:"tousty"},
- "St":{obed:"ryze_vepr_zampiony",vecere:"carbonara"},
- "Čt":{obed:"ryze_vepr_zampiony",vecere:"pita_zapecena"},
- "Pá":{obed:"butter",vecere:"livance"},
- "So":{obed:"butter",vecere:"burty_pivo"},
- "Ne":{obed:"lasagne",vecere:"bagetky_sunka"}
+ "Po":{obed:"lasagne",vecere:"tunak_pomazanka"},
+ "Út":{obed:"segedin",vecere:"quesadilla"},
+ "St":{obed:"segedin",vecere:"smes_tousty"},
+ "Čt":{obed:"ryze_kure_spalik",vecere:"bagetky_brusinky"},
+ "Pá":{obed:"ryze_kure_spalik",vecere:"tunak_pomazanka"},
+ "So":{obed:"burger",vecere:"burger"},
+ "Ne":{obed:"lasagne",vecere:"lasagne"}
 }};
 
 // ═══════════════════════════════════════════
