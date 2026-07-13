@@ -143,12 +143,13 @@ const SPICES=new Set(["Sůl","Pepř","Olej","Cukr","Kari koření","Mletá papri
 const ALLDAYS=["Po","Út","St","Čt","Pá","So","Ne"];
 const DEFAULT_RATINGS={butter:5,gnocchi_carb:4};
 
+// Pořadí = pořadí zápisu do nákupu: zelenina → maso → pečivo → šunka & mléčné → zbytek
 const SHOP_CATS=[
-  {id:"maso",  l:"🥩 Maso & ryby",         keys:["kuřec","hovez","vepřov","panenka","kotleta","žebr","mleté","špalík","šunk","slanin","párk","tuňák","losos"]},
-  {id:"mlecne",l:"🥛 Mléčné & vejce",       keys:["smetana","jogurt","tvaroh","sýr","niva","hermelín","balkán","tavený","parmazán","máslo","mléko","vejce","žloutek","zakysaná","čedar","eidam"]},
   {id:"zelen", l:"🥦 Zelenina & ovoce",      keys:["rajče","rajčat","paprik","cibul","mrkev","česnek","žampion","houb","okurk","salát","špenát","batát","brambor","jahod","citron","cuketa","kukuřic","fazolk","zelí","petrže","celer","bazalk","šalvěj","zázvor","jarní","kopr","pažitk","brusink"]},
-  {id:"suche", l:"🥫 Těstoviny & konzervy",  keys:["těstoviny","špaget","tagliatelle","nudle","lasagne","rýže","gnocchi","mouka","strouhank","cizrna","fazole","drcená","kokosové","vývar","protlak","sójov","burákov","mirin","saké","víno","tatarsk","majonéz","oříšek"]},
+  {id:"maso",  l:"🥩 Maso & ryby",           keys:["kuřec","hovez","vepřov","panenka","kotleta","žebr","mleté","špalík","slanin","párk","buřt","klobás","tuňák","losos"]},
   {id:"pecivo",l:"🥖 Pečivo & placky",       keys:["chléb","chleba","toustov","bulka","bageta","pita","naan","tortilla","knedlík","listové těsto","polotovar","pizza","pečivo"]},
+  {id:"mlecne",l:"🥛 Šunka & mléčné",         keys:["šunk","smetana","jogurt","tvaroh","sýr","niva","hermelín","balkán","tavený","parmazán","máslo","mléko","vejce","žloutek","zakysaná","čedar","eidam"]},
+  {id:"suche", l:"🥫 Těstoviny & konzervy",  keys:["těstoviny","špaget","tagliatelle","nudle","lasagne","rýže","gnocchi","mouka","strouhank","cizrna","fazole","drcená","kokosové","vývar","protlak","sójov","burákov","mirin","saké","víno","tatarsk","majonéz","oříšek"]},
   {id:"ostatni",l:"🛒 Ostatní",             keys:[]}
 ];
 
