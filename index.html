@@ -413,7 +413,7 @@ const CANS=[[["tuňák"],80],[["cizrna"],240],[["fazole"],240],[["kukuřice"],14
 // ═══════════════════════════════════════════
 // PLAN (injektovaný z chatu)
 // ═══════════════════════════════════════════
-const PLAN={version:"2026-W26.6",start:"Út",
+const PLAN={version:"2026-W26.7",week:"2026-W26",start:"Út",
  // jídla označená "jíme venku" (klíče den_slot) – přenese se i na telefon
  eatOut:["Út_obed"],
  menu:{
@@ -628,7 +628,16 @@ function pickWeighted(pool,used){
   for(const r of arr){x-=weight(r.id);if(x<=0)return r}
   return arr[arr.length-1];
 }
-function recordHistory(m){const cw=currentWeek(),h=LS.history;for(const d in m){if(m[d].obed)h[m[d].obed]=cw;if(m[d].vecere)h[m[d].vecere]=cw}LS.history=h}
+function recordHistory(m,week){const cw=week||currentWeek(),h=LS.history;for(const d in m){if(m[d].obed)h[m[d].obed]=cw;if(m[d].vecere)h[m[d].vecere]=cw}LS.history=h}
+// Uloží týden do archivu pod daný klíč a ořízne na ARCHIVE_WEEKS
+function archiveWeek(weekKey,menu,eatOut,start){
+  if(!weekKey||!menu)return;
+  const a=LS.archive;
+  a[weekKey]={menu:JSON.parse(JSON.stringify(menu)),eatOut:[...(eatOut||[])],start:start??LS.start,savedAt:new Date().toISOString()};
+  const keep={};
+  Object.keys(a).sort((x,y)=>weekNum(y)-weekNum(x)).slice(0,ARCHIVE_WEEKS).forEach(k=>keep[k]=a[k]);
+  LS.archive=keep;
+}
 function genMenu(){
   const all=getAll(),lunch=all.filter(r=>r.meals.includes("obed")),dinner=all.filter(r=>r.meals.includes("vecere")&&r.time<=35);
   const used=new Set(),m={};
@@ -656,7 +665,11 @@ function applyPlan(){
   if(PLAN.start)LS.start=Math.max(0,ALLDAYS.indexOf(PLAN.start));
   LS.menu=JSON.parse(JSON.stringify(PLAN.menu));LS.bought=[];LS.confirmed=null;LS.cooked={};
   LS.eatOut=PLAN.eatOut?[...PLAN.eatOut]:[];
-  recordHistory(LS.menu);
+  // Týden zadaný do plánu se rovnou uloží i do archivu
+  const wk=PLAN.week||currentWeek();
+  recordHistory(LS.menu,wk);
+  archiveWeek(wk,LS.menu,LS.eatOut,LS.start);
+  LS.menuWeek=wk;
   localStorage.setItem("jid_plan_version",PLAN.version);
 }
 
