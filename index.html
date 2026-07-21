@@ -446,6 +446,8 @@ const LS={
   get eatOut(){return this._g("jid_eatout",[])},     set eatOut(v){this._s("jid_eatout",v)},
   get mealsOverride(){return this._g("jid_meals",{})},set mealsOverride(v){this._s("jid_meals",v)},
   get prepOverride(){return this._g("jid_prep",{})},  set prepOverride(v){this._s("jid_prep",v)},
+  get archive(){return this._g("jid_archive",{})},    set archive(v){this._s("jid_archive",v)},
+  get menuWeek(){return localStorage.getItem("jid_menuweek")||""}, set menuWeek(v){localStorage.setItem("jid_menuweek",v)},
 };
 // Polotovar = hotové jídlo (např. zavařené od známé) – do nákupu se nepočítá
 function isPrep(r){const o=LS.prepOverride;return (r.id in o)?!!o[r.id]:!!r.prep}
@@ -467,6 +469,11 @@ function weight(id){const r=rating(id);return r>0?r*r:6}
 function days(){const s=Math.min(Math.max(LS.start,0),6);return ALLDAYS.slice(s)}
 function dayFull(d){return{Po:"Pondělí",Út:"Úterý",St:"Středa",Čt:"Čtvrtek",Pá:"Pátek",So:"Sobota",Ne:"Neděle"}[d]}
 function todayAbbr(){return["Ne","Po","Út","St","Čt","Pá","So"][new Date().getDay()]}
+// Pondělí aktuálního kalendářního týdne
+function weekMonday(){const x=new Date();const day=x.getDay()||7;x.setDate(x.getDate()-(day-1));x.setHours(0,0,0,0);return x}
+// Reálné datum daného dne v tomto týdnu
+function dateOfDay(abbr){const i=Math.max(0,ALLDAYS.indexOf(abbr));const d=weekMonday();d.setDate(d.getDate()+i);return d}
+function dateLabel(abbr){const d=dateOfDay(abbr);return d.getDate()+". "+(d.getMonth()+1)+"."}
 
 function catTag(c){const k=CAT[c];return`<span class="tag t-${k.c}">${k.e} ${k.l}</span>`}
 function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}${isPrep(r)?'<span class="pill-prep">🥫 polotovar</span>':''}`}
@@ -582,7 +589,29 @@ function currentWeek(){
   return y+"-W"+String(Math.ceil(((td-ys)/86400000+1)/7)).padStart(2,"0");
 }
 function weekNum(w){const[y,n]=w.split("-W");return+y*100+ +n}
+// Recept použitý tento nebo minulý týden se nesmí objevit znovu (max 1× za 2 týdny)
 function isRecentlyUsed(id){const rw=LS.history[id]?weekNum(LS.history[id]):0;return weekNum(currentWeek())-rw<2}
+
+// Archiv jídelníčků – držíme cca měsíc zpět
+const ARCHIVE_WEEKS=5;
+// Když začne nový kalendářní týden, odlož ten předchozí do archivu
+function archiveIfNewWeek(){
+  const cw=currentWeek(),mw=LS.menuWeek;
+  if(LS.menu&&mw&&mw!==cw){
+    const a=LS.archive;
+    a[mw]={menu:LS.menu,eatOut:LS.eatOut,start:LS.start,savedAt:new Date().toISOString()};
+    const keep={};
+    Object.keys(a).sort((x,y)=>weekNum(y)-weekNum(x)).slice(0,ARCHIVE_WEEKS).forEach(k=>keep[k]=a[k]);
+    LS.archive=keep;
+  }
+  if(mw!==cw)LS.menuWeek=cw;
+}
+// Zahoď záznamy historie starší než archivované okno
+function pruneHistory(){
+  const cw=weekNum(currentWeek()),h=LS.history;let ch=false;
+  for(const k in h){if(cw-weekNum(h[k])>ARCHIVE_WEEKS){delete h[k];ch=true}}
+  if(ch)LS.history=h;
+}
 
 // Z dinner poolu vyřadí jídla se stejnou přílohou jako oběd (když po vyřazení něco zbyde)
 function dinnerPool(dinner,lunch){
@@ -660,7 +689,8 @@ function renderTyden(){
   }
   const N=cookDays||1;
   const dk=Math.round(tk/N),dp=Math.round(tp/N),dc=Math.round(tc/N),df=Math.round(tf/N);
-  const cf=LS.confirmed,wk=(PLAN.version||"").split(".")[0],rng=dd.length?`${dd[0]}–${dd[dd.length-1]}`:"";
+  const cf=LS.confirmed,wk=(PLAN.version||"").split(".")[0];
+  const rng=dd.length?`${dateLabel(dd[0])} – ${dateLabel(dd[dd.length-1])}`:"";
   const today=todayAbbr();
 
   let h=`<div class="card" style="border-color:${cf?'var(--acc2)':'#b4892b'};background:${cf?'rgba(34,197,94,.08)':'rgba(245,158,11,.08)'}">
@@ -695,7 +725,7 @@ function renderTyden(){
     if(!isEatOut(d,"vecere")){dk+=v.kcal;dp+=v.p}
     h+=`<div class="daycard ${isToday?'today':''}">
       <div class="row spread">
-        <div><div class="day">${isToday?'📍 ':''}${dayFull(d)}</div>${isToday?'<div style="font-size:11px;color:var(--acc);font-weight:700">Dnes</div>':''}</div>
+        <div><div class="day">${isToday?'📍 ':''}${dayFull(d)} <span class="muted" style="font-weight:600">${dateLabel(d)}</span></div>${isToday?'<div style="font-size:11px;color:var(--acc);font-weight:700">Dnes</div>':''}</div>
         <div class="muted" style="font-size:12px">🔥 ${dk} kcal · B ${dp} g</div>
       </div>
       ${mealRow(d,"obed","🍲 Oběd",o)}${mealRow(d,"vecere","⚡ Večeře",v)}
@@ -1084,9 +1114,26 @@ function togglePantry(n){let p=new Set(LS.pantry);p.has(n)?p.delete(n):p.add(n);
 // ═══════════════════════════════════════════
 // SETTINGS / EXPORT / IMPORT
 // ═══════════════════════════════════════════
+// Přehled archivovaných týdnů (cca měsíc zpět)
+function archiveHtml(){
+  const a=LS.archive,keys=Object.keys(a).sort((x,y)=>weekNum(y)-weekNum(x));
+  if(!keys.length)return `<div class="muted" style="font-size:13px;margin-top:4px">Zatím žádné archivované týdny – odloží se automaticky, jakmile začne nový.</div>`;
+  return keys.map(k=>{
+    const w=a[k],out=w.eatOut||[];
+    const rows=Object.keys(w.menu).map(d=>{
+      const o=byId(w.menu[d].obed),v=byId(w.menu[d].vecere);
+      const on=out.includes(d+"_obed")?"🍽️ venku":(o?o.name:"—");
+      const vn=out.includes(d+"_vecere")?"🍽️ venku":(v?v.name:"—");
+      return `<div style="font-size:12px;padding:2px 0"><b>${d}</b> · ${on} · ${vn}</div>`;
+    }).join("");
+    return `<div class="note" style="margin-top:8px"><div style="font-weight:700;color:var(--txt);margin-bottom:4px">${k}</div>${rows}</div>`;
+  }).join("");
+}
 function openSettings(){
   openModal(`<div class="handle"></div><h2>⚙️ Nastavení & záloha</h2>
-    <div class="sectlabel">Záloha dat</div>
+    <div class="sectlabel">🗄️ Archiv jídelníčků (měsíc zpět)</div>
+    ${archiveHtml()}
+    <div class="sectlabel" style="margin-top:16px">Záloha dat</div>
     <div style="display:grid;gap:8px;margin-top:4px">
       <button class="btn ghost block" onclick="exportData()">📤 Exportovat data (JSON)</button>
       <label class="btn ghost block" style="display:block;text-align:center;cursor:pointer">📥 Importovat data (JSON)
@@ -1097,7 +1144,7 @@ function openSettings(){
     <div class="note" style="margin-top:8px">Export uloží recepty, hodnocení, nákup, spíž a historii.</div>`);
 }
 function exportData(){
-  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,mealsOverride:LS.mealsOverride,prepOverride:LS.prepOverride,exportedAt:new Date().toISOString()};
+  const data={ratings:LS.ratings,menu:LS.menu,pantry:LS.pantry,bought:LS.bought,custom:LS.custom,history:LS.history,removed:LS.removed,manualItems:LS.manualItems,eatOut:LS.eatOut,mealsOverride:LS.mealsOverride,prepOverride:LS.prepOverride,archive:LS.archive,menuWeek:LS.menuWeek,exportedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`jidelnik-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
   URL.revokeObjectURL(url);toast("Data exportována");
@@ -1110,13 +1157,13 @@ function importData(input){
       const d=JSON.parse(e.target.result);
       if(d.ratings)LS.ratings=d.ratings;if(d.menu)LS.menu=d.menu;if(d.pantry)LS.pantry=d.pantry;
       if(d.bought)LS.bought=d.bought;if(d.custom)LS.custom=d.custom;if(d.history)LS.history=d.history;
-      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;if(d.mealsOverride)LS.mealsOverride=d.mealsOverride;if(d.prepOverride)LS.prepOverride=d.prepOverride;
+      if(d.removed)LS.removed=d.removed;if(d.manualItems)LS.manualItems=d.manualItems;if(d.eatOut)LS.eatOut=d.eatOut;if(d.mealsOverride)LS.mealsOverride=d.mealsOverride;if(d.prepOverride)LS.prepOverride=d.prepOverride;if(d.archive)LS.archive=d.archive;if(d.menuWeek)LS.menuWeek=d.menuWeek;
       closeModal();render();toast("Data importována ✓");
     }catch(err){toast("Chyba při importu – zkontroluj soubor.")}
   };
   reader.readAsText(file);
 }
-function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_meals","jid_prep","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
+function confirmClearData(){confirm2("Smazat všechna uložená data?",()=>{["jid_ratings","jid_menu","jid_pantry","jid_bought","jid_custom","jid_confirmed","jid_start","jid_cooked","jid_manual","jid_history","jid_removed","jid_eatout","jid_meals","jid_prep","jid_archive","jid_menuweek","jid_plan_version"].forEach(k=>localStorage.removeItem(k));render();toast("Data smazána")},"Smazat vše",true)}
 
 // ═══════════════════════════════════════════
 // MODAL
@@ -1139,6 +1186,8 @@ document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",(
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+archiveIfNewWeek();
+pruneHistory();
 applyPlan();
 render();
 
