@@ -136,6 +136,7 @@ textarea.in{min-height:90px;resize:vertical}
   <button data-tab="tyden" class="on"><span class="ic">📅</span>Týden</button>
   <button data-tab="recepty"><span class="ic">📖</span>Recepty</button>
   <button data-tab="nakup"><span class="ic">🛒</span>Nákup</button>
+  <button data-tab="letak"><span class="ic">🏷️</span>Leták</button>
   <button data-tab="spiz"><span class="ic">🏠</span>Spíž</button>
 </div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
@@ -702,6 +703,7 @@ function render(){
   if(tab==="tyden")renderTyden();
   else if(tab==="recepty")renderRecepty();
   else if(tab==="nakup")renderNakup();
+  else if(tab==="letak")renderLetak();
   else renderSpiz();
 }
 
@@ -1151,6 +1153,40 @@ function renderSpiz(){
   view.innerHTML=h;
 }
 function togglePantry(n){let p=new Set(LS.pantry);p.has(n)?p.delete(n):p.add(n);LS.pantry=[...p];renderSpiz()}
+
+// ═══════════════════════════════════════════
+// LETÁK / AKCE VIEW
+// ═══════════════════════════════════════════
+function priceHtml(it){return `${it.price||''}${it.was?` <span class="was">${it.was}</span>`:''}${it.note?` <span class="muted" style="font-weight:600">${it.note}</span>`:''}`}
+function renderLetak(){
+  subtitle.textContent="Akce Albert – zlevněné suroviny";
+  const s=SALES;
+  if(!s.items||!s.items.length){
+    view.innerHTML=`<div class="empty">Zatím žádné akce 🏷️<br><span class="muted" style="display:block;margin-top:6px">Leták doplní nedělní routina — zapíše jen položky platné i v pondělí (nákupní den).</span></div>`;
+    return;
+  }
+  const rng=(s.validFrom||s.validTo)?`${s.validFrom||''}${s.validTo?' – '+s.validTo:''}`:"";
+  let h=`<div class="salecard"><div class="row spread"><div style="font-weight:800">🏷️ Akce Albert</div><span class="muted">${rng}</span></div>${s.note?`<div class="muted" style="margin-top:4px">${s.note}</div>`:''}<div class="muted" style="font-size:12px;margin-top:6px">${s.items.length} akcí na běžně nakupované suroviny.</div></div>`;
+  const grouped={};for(const c of SHOP_CATS)grouped[c.id]=[];
+  for(const it of s.items)grouped[shopCatId(it.name)].push(it);
+  for(const cat of SHOP_CATS){
+    const items=grouped[cat.id];if(!items.length)continue;
+    h+=`<div class="shop-cat">${cat.l} <span class="cnt">${items.length}</span></div>`;
+    for(const it of items){
+      const recs=getAll().filter(r=>r.ing.some(a=>{const sl=saleFor(a[0]);return sl&&sl.name===it.name})).map(r=>r.name);
+      h+=`<div class="saleitem" style="align-items:flex-start"><div style="flex:1">
+        <div style="font-weight:600">${it.name}</div>
+        ${recs.length?`<div class="muted" style="font-size:11px;margin-top:2px">V receptech: ${recs.slice(0,4).join(", ")}${recs.length>4?` +${recs.length-4}`:''}</div>`:''}
+      </div><span class="pr">${priceHtml(it)}</span></div>`;
+    }
+  }
+  const tips=getAll().map(r=>({r,n:recipeSaleCount(r)})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,8);
+  if(tips.length){
+    h+=`<div class="sectlabel">💡 Recepty využívající akci</div>`;
+    for(const t of tips)h+=`<div class="card" style="padding:12px;cursor:pointer" onclick="openRecipe('${t.r.id}')"><div class="row spread"><div style="font-weight:600">${t.r.name}</div><span class="pill-sale">🏷️ ${t.n}×</span></div><div class="row" style="gap:6px;margin-top:6px">${catTag(t.r.cat)} <span class="muted">${t.r.time} min · 🔥 ${t.r.kcal}</span></div></div>`;
+  }
+  view.innerHTML=h;
+}
 
 // ═══════════════════════════════════════════
 // SETTINGS / EXPORT / IMPORT
