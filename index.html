@@ -101,6 +101,12 @@ ol.steps li{padding:4px 0;line-height:1.5}
 .pill-q{font-size:10px;background:rgba(56,189,248,.15);color:var(--ryba);padding:2px 6px;border-radius:6px;font-weight:700}
 .pill-cl{font-size:10px;background:rgba(96,165,250,.18);color:var(--carb);padding:2px 6px;border-radius:6px;font-weight:700}
 .pill-prep{font-size:10px;background:rgba(251,191,36,.18);color:var(--star);padding:2px 6px;border-radius:6px;font-weight:700}
+.pill-sale{font-size:10px;background:rgba(239,68,68,.16);color:#fca5a5;padding:2px 6px;border-radius:6px;font-weight:700}
+.salecard{background:linear-gradient(135deg,#3a1520,#1a1d24);border:1px solid #5c2230;border-radius:16px;padding:14px;margin:10px 0}
+.saleitem{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.saleitem:last-child{border-bottom:none}
+.saleitem .pr{font-weight:800;color:#fca5a5;white-space:nowrap}
+.saleitem .pr .was{color:var(--mut);font-weight:500;font-size:12px;text-decoration:line-through;margin-left:6px}
 .note{background:var(--card2);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin:8px 0}
 a{color:var(--acc)}
 label.fld{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut);font-weight:600}
@@ -428,6 +434,10 @@ const PLAN={version:"2026-W26.8",week:"2026-W26",start:"Út",
  "Ne":{obed:"livance",vecere:"livance"}
 }};
 
+// 🏷️ Akce Albert – aktualizuje nedělní routina. Uváděj jen akce platné i v pondělí (nákupní den).
+// items: {name:"Kuřecí prsa", price:"99 Kč/kg", was:"149 Kč", note:"−33 %"}
+const SALES={week:"",validFrom:"",validTo:"",note:"",items:[]};
+
 // ═══════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════
@@ -479,7 +489,11 @@ function dateOfDay(abbr){const i=Math.max(0,ALLDAYS.indexOf(abbr));const d=weekM
 function dateLabel(abbr){const d=dateOfDay(abbr);return d.getDate()+". "+(d.getMonth()+1)+"."}
 
 function catTag(c){const k=CAT[c];return`<span class="tag t-${k.c}">${k.e} ${k.l}</span>`}
-function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}${isPrep(r)?'<span class="pill-prep">🥫 polotovar</span>':''}`}
+function flags(r){return`${r.quick?'<span class="pill-q">⚡</span>':''}${r.cl?'<span class="pill-cl">🍚 carb</span>':''}${isPrep(r)?'<span class="pill-prep">🥫 polotovar</span>':''}${recipeSaleCount(r)?'<span class="pill-sale">🏷️ akce</span>':''}`}
+// Vrátí akční položku odpovídající názvu suroviny (nebo null)
+function saleFor(name){if(!SALES.items||!SALES.items.length)return null;const n=name.toLowerCase();return SALES.items.find(s=>{const sn=s.name.toLowerCase();return n.includes(sn)||sn.includes(n)})||null}
+// Kolik surovin receptu je aktuálně v akci
+function recipeSaleCount(r){if(!SALES.items||!SALES.items.length)return 0;return r.ing.filter(a=>saleFor(a[0])).length}
 function starsHTML(id,sz){const r=rating(id);let h=`<span class="stars ${sz||''}" data-rate="${id}">`;for(let i=1;i<=5;i++)h+=`<span class="s ${i<=r?'on':''}" data-v="${i}">★</span>`;return h+"</span>"}
 function macroRow(r){return`<div class="macros"><span class="mb m-kcal">🔥 ${r.kcal} kcal</span><span class="mb m-prot">B ${r.p} g</span><span class="mb m-carb">S ${r.c} g</span><span class="mb m-fat">T ${r.f} g</span></div>`}
 function macroBars(p,c,f){const pk=p*4,ck=c*4,fk=f*9,t=pk+ck+fk||1;return`<div class="bars"><i style="width:${pk/t*100}%;background:var(--prot)"></i><i style="width:${ck/t*100}%;background:var(--carb)"></i><i style="width:${fk/t*100}%;background:var(--fat)"></i></div>`}
@@ -724,6 +738,7 @@ function renderTyden(){
       <div><div class="v" style="color:var(--fat)">${df} g</div><div class="k">Tuky</div></div>
       <div><div class="v">${Math.round(tk/100)/10}k</div><div class="k">kcal celkem</div></div>
     </div></div>
+  ${salesCardHtml()}
   <div class="note" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
     <span>📆 Začít od</span>
     <select class="in" style="width:auto;padding:6px 8px" onchange="setStart(this.value)">${ALLDAYS.map((d,i)=>`<option value="${i}" ${i===LS.start?'selected':''}>${dayFull(d)}</option>`).join("")}</select>
@@ -748,6 +763,16 @@ function renderTyden(){
     </div>`;
   }
   view.innerHTML=h;
+}
+// Karta s aktuálními akcemi Albertu (zapsanými routinou)
+function salesCardHtml(){
+  const s=SALES;if(!s.items||!s.items.length)return "";
+  const rng=(s.validFrom||s.validTo)?`${s.validFrom||''}${s.validTo?' – '+s.validTo:''}`:"";
+  let h=`<div class="salecard"><div class="row spread"><div style="font-weight:800">🏷️ Akce Albert</div><span class="muted">${rng}</span></div>`;
+  if(s.note)h+=`<div class="muted" style="margin:4px 0 6px">${s.note}</div>`;
+  for(const it of s.items)h+=`<div class="saleitem"><span>${it.name}</span><span class="pr">${it.price||''}${it.was?`<span class="was">${it.was}</span>`:''}${it.note?` <span class="muted" style="font-weight:600">${it.note}</span>`:''}</span></div>`;
+  h+=`<div class="muted" style="font-size:12px;margin-top:8px">Recepty se zlevněnou surovinou mají odznak 🏷️ akce.</div></div>`;
+  return h;
 }
 function mealRow(day,slot,lbl,r){
   const key=day+"_"+slot,done=LS.cooked[key]===true,out=isEatOut(day,slot);
@@ -896,7 +921,7 @@ function openRecipe(id,portionsArg){
   const r=byId(id);if(!r)return;
   const base=r.porce||2,p=portionsArg||base,sc=p/base;
   let ingHtml="";
-  for(const a of r.ing)ingHtml+=`<li><span>${a[0]}</span><span class="muted">${scaleAmt(a[1],sc)||''}</span></li>`;
+  for(const a of r.ing){const sl=saleFor(a[0]);ingHtml+=`<li><span>${a[0]}${sl?` <span class="pill-sale">🏷️ ${sl.price||'akce'}</span>`:''}</span><span class="muted">${scaleAmt(a[1],sc)||''}</span></li>`;}
   let h=`<div class="handle"></div>
     <h2>${r.name} ${r.custom?'<span class="badge-custom">vlastní</span>':''}</h2>
     <div class="row" style="gap:6px;margin:8px 0">${catTag(r.cat)} ${flags(r)}<span class="muted">${r.time} min</span></div>
